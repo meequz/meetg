@@ -8,8 +8,9 @@ with open('README.md') as f:
 
 setup(
     name='meetg',
-    version='0.1',
+    version='0.1.1',
     packages=['meetg'],
+    scripts=['bin/meetg-admin'],
     description='Framework for creating Telegram bots',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -21,7 +22,7 @@ setup(
     keywords='telegram bot framework',
     classifiers=[
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: LGPL-3.0 License',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
