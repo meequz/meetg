@@ -1,16 +1,13 @@
-import datetime, time
+import time
 
 import telegram
 from telegram import Update
-from telegram.chat import Chat
 from telegram.ext import Updater
-from telegram.message import Message
-from telegram.user import User
 
 import settings
 from meetg.utils import serialize_user
 from meetg.loging import get_logger
-from meetg.testing import UpdaterBotMock
+from meetg.testing import UpdaterBotMock, create_test_message
 
 
 logger = get_logger()
@@ -23,7 +20,7 @@ class BaseBot:
         self._is_mock = mock
         if mock:
             self._tgbot = UpdaterBotMock()
-            self._tgbot_username = self._tgbot.get_me().username
+            self._tgbot_username = self._tgbot.username
         else:
             self._updater = Updater(settings.tg_api_token, use_context=True)
             self._tgbot = self._updater.bot
@@ -54,12 +51,7 @@ class BaseBot:
         Simulates sending messages to the bot
         """
         if isinstance(message, str):
-            chat = Chat(1, 'private')
-            user = User(id=1, first_name='Firstname', is_bot=False)
-            message = Message(
-                message_id=1, text=message, date=datetime.datetime.now(), chat=chat,
-                from_user=user,
-            )
+            message = create_test_message(message, self._tgbot)
         update_obj = Update(1, message=message)
         return self._mock_process_update(update_obj)
 
