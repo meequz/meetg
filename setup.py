@@ -8,7 +8,7 @@ with open('README.md') as f:
 
 setup(
     name='meetg',
-    version='0.2',
+    version='0.2.1',
     packages=['meetg'],
     scripts=['bin/meetg-admin'],
     description='Framework for creating Telegram bots',
