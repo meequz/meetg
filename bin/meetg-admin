@@ -8,7 +8,7 @@ from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext import Filters, Updater
 
 
-class {bot_class_name}(BaseBot):
+class {name_cc}Bot(BaseBot):
     """Example of your bot"""
 
     def get_handlers(self):
@@ -50,13 +50,13 @@ from meetg.default_settings import *
 
 tg_api_token = ''
 
-mongo_db_name = '{db_name}'
+mongo_db_name = '{name_cc_uncap}DB'
 
-bot_class = 'bot.main.{bot_class_name}'
+bot_class = 'bot.main.{name_cc}Bot'
 '''
 
 PROJECT_CREATED = '''
-Project {project_name} created. Fill the empty variables in settings.py,
+Project {name} created. Fill the empty variables in settings.py,
 and you are ready to run it by: python3 manage.py run
 
 To start coding, open bot/main.py
@@ -77,6 +77,17 @@ def to_camelcase(string):
     return camel_string
 
 
+def to_lowercase(string):
+    lower_string = ''
+    for char in string.strip():
+        if char.isalpha():
+            lower_string += char
+        else:
+            lower_string += ' '
+    lower_string = '_'.join(lower_string.strip().split())
+    return lower_string.lower()
+
+
 def create_file(path, content):
     dir_path = os.path.dirname(path)
     if not os.path.exists(dir_path):
@@ -85,19 +96,19 @@ def create_file(path, content):
         f.write(content.lstrip())
 
 
-def start_project(name, dir_path):
-    camelcase_name = to_camelcase(name)
-    camelcase_uncap = camelcase_name[0].lower() + camelcase_name[1:]
-    bot_class_name = f'{camelcase_name}Bot'
-    db_name = f'{camelcase_uncap}DB'
+def start_project(name, path):
+    name_cc = to_camelcase(name)
+    name_lc = to_lowercase(name)
+    name_cc_uncap = name_cc[0].lower() + name_cc[1:]
 
+    dir_path = os.path.join(path, name_lc)
     bot_path = os.path.join(dir_path, 'bot')
 
-    main_py_content = BOT_MAIN_PY.format(bot_class_name=bot_class_name)
+    main_py_content = BOT_MAIN_PY.format(name_cc=name_cc)
     main_py_path = os.path.join(bot_path, 'main.py')
     create_file(main_py_path, main_py_content)
 
-    settings_py_content = SETTINGS_PY.format(bot_class_name=bot_class_name, db_name=db_name)
+    settings_py_content = SETTINGS_PY.format(name_cc=name_cc, name_cc_uncap=name_cc_uncap)
     settings_py_path = os.path.join(dir_path, 'settings.py')
     create_file(settings_py_path, settings_py_content)
 
@@ -106,12 +117,13 @@ def start_project(name, dir_path):
 
 
 def main():
-    dir_path = os.getcwd()
+    path = os.getcwd()
     args = sys.argv
 
     if len(args) > 2 and args[1] == 'startproject':
-        start_project(args[2], dir_path)
-        print(PROJECT_CREATED.format(project_name=args[2]))
+        name = args[2]
+        start_project(name, path)
+        print(PROJECT_CREATED.format(name=name))
     else:
         print('Usage: meetg-admin startproject my_project')
 
