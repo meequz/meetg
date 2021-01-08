@@ -54,8 +54,7 @@ class Database:
         'lon', 'map_link', 'notification_msg_id',
     )
 
-    def __init__(self):
-        db_name = settings.mongo_db_name
+    def __init__(self, db_name):
         user_collection_name = settings.mongo_user_collection_name
         self._user_st = MongoStorage(db_name, user_collection_name)
 

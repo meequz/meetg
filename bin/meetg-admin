@@ -51,8 +51,24 @@ from meetg.default_settings import *
 tg_api_token = ''
 
 mongo_db_name = '{name_cc_uncap}DB'
+mongo_db_name_test = '{name_cc_uncap}TestDB'
 
 bot_class = 'bot.main.{name_cc}Bot'
+'''
+
+TEST_REPLY_PY = '''
+from meetg.testing import BotTestCase
+
+
+class ReplyTest(BotTestCase):
+
+    def test_reply_start(self):
+        self.bot.test_send('/start')
+        assert self.bot.last_api_text == 'Hello, world! Here is a reply to /start command'
+
+    def test_reply_any(self):
+        self.bot.test_send('uyui')
+        assert self.bot.last_api_text == 'And here is a reply to any text message'
 '''
 
 PROJECT_CREATED = '''
@@ -66,8 +82,10 @@ To start coding, open bot/main.py
 def to_camelcase(string):
     camel_string = ''
     up_next = True
-    for char in string.strip():
-        if char.isalpha():
+    for idx, char in enumerate(string.strip()):
+        if char.isdigit() and idx == 0:
+            continue
+        if char.isalpha() or char.isdigit():
             if up_next:
                 char = char.upper()
             camel_string += char
@@ -79,8 +97,10 @@ def to_camelcase(string):
 
 def to_lowercase(string):
     lower_string = ''
-    for char in string.strip():
-        if char.isalpha():
+    for idx, char in enumerate(string.strip()):
+        if char.isdigit() and idx == 0:
+            continue
+        if char.isalpha() or char.isdigit():
             lower_string += char
         else:
             lower_string += ' '
@@ -103,10 +123,20 @@ def start_project(name, path):
 
     dir_path = os.path.join(path, name_lc)
     bot_path = os.path.join(dir_path, 'bot')
+    tests_path = os.path.join(bot_path, 'tests')
 
     main_py_content = BOT_MAIN_PY.format(name_cc=name_cc)
     main_py_path = os.path.join(bot_path, 'main.py')
     create_file(main_py_path, main_py_content)
+
+    init_py_path = os.path.join(bot_path, '__init__.py')
+    create_file(init_py_path, '')
+
+    test_reply_py_path = os.path.join(tests_path, 'test_reply.py')
+    create_file(test_reply_py_path, TEST_REPLY_PY)
+
+    tests_init_py_path = os.path.join(tests_path, '__init__.py')
+    create_file(tests_init_py_path, '')
 
     settings_py_content = SETTINGS_PY.format(name_cc=name_cc, name_cc_uncap=name_cc_uncap)
     settings_py_path = os.path.join(dir_path, 'settings.py')

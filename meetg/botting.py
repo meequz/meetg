@@ -1,11 +1,16 @@
-import time
+import datetime, time
 
 import telegram
+from telegram import Update
+from telegram.chat import Chat
 from telegram.ext import Updater
+from telegram.message import Message
+from telegram.user import User
 
 import settings
 from meetg.utils import serialize_user
 from meetg.loging import get_logger
+from meetg.testing import UpdaterBotMock
 
 
 logger = get_logger()
@@ -15,8 +20,11 @@ class BaseBot:
     """Common Telegram bot logic"""
 
     def __init__(self, db, mock=False):
-        self._mock = mock
-        if not mock:
+        self._is_mock = mock
+        if mock:
+            self._tgbot = UpdaterBotMock()
+            self._tgbot_username = self._tgbot.get_me().username
+        else:
             self._updater = Updater(settings.tg_api_token, use_context=True)
             self._tgbot = self._updater.bot
             self._tgbot_username = self._updater.bot.get_me().username
@@ -25,13 +33,35 @@ class BaseBot:
 
     def _init_handlers(self):
         self._handlers = self.get_handlers()
-        if not self._mock:
+        if not self._is_mock:
             for handler in self._handlers:
                 self._updater.dispatcher.add_handler(handler)
 
     def get_handlers(self):
         logger.warning('No handlers found')
         return ()
+
+    def _mock_process_update(self, update_obj):
+        """Simulation of telegram.ext.dispatcher.Dispatcher.process_update()"""
+        for handler in self._handlers:
+            check = handler.check_update(update_obj)
+            if check not in (None, False):
+                return handler.callback(update_obj, None)
+
+    def test_send(self, message):
+        """
+        Method to use in auto tests.
+        Simulates sending messages to the bot
+        """
+        if isinstance(message, str):
+            chat = Chat(1, 'private')
+            user = User(id=1, first_name='Firstname', is_bot=False)
+            message = Message(
+                message_id=1, text=message, date=datetime.datetime.now(), chat=chat,
+                from_user=user,
+            )
+        update_obj = Update(1, message=message)
+        return self._mock_process_update(update_obj)
 
     def run(self):
         self._updater.start_polling()
@@ -96,6 +126,11 @@ class BaseBot:
         """
         Here is retry logic and logic for dealing with network and load issues
         """
+        if self._is_mock:
+            self.last_api_method = method_name
+            self.last_api_args = kwargs
+            return None, None
+
         to_attempt = 5
         success = False
         self._log_api_call(method_name, kwargs)
@@ -157,6 +192,8 @@ class BaseBot:
             chat_id=chat_id, text=body, reply_to_message_id=msg_id, reply_markup=markup,
             parse_mode=parse_mode, disable_web_page_preview=not preview,
         )
+        if self._is_mock:
+            self.last_api_text = body
         return success, resp
 
     def edit_msg_text(self, chat_id, body, msg_id, preview=False):
