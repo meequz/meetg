@@ -14,21 +14,28 @@ logger = get_logger()
 class BaseBot:
     """Common Telegram bot logic"""
 
-    def __init__(self, db):
+    def __init__(self, db, mock=False):
+        self._mock = mock
+        if not mock:
+            self._updater = Updater(settings.tg_api_token, use_context=True)
+            self._tgbot = self._updater.bot
+            self._tgbot_username = self._updater.bot.get_me().username
         self._db = db
-        self._updater = Updater(settings.tg_api_token, use_context=True)
-        self._tgbot = self._updater.bot
-        self._tgbot_username = self._updater.bot.get_me().username
         self._init_handlers()
 
     def _init_handlers(self):
-        handlers = self.get_handlers()
-        for handler in handlers:
-            self._updater.dispatcher.add_handler(handler)
+        self._handlers = self.get_handlers()
+        if not self._mock:
+            for handler in self._handlers:
+                self._updater.dispatcher.add_handler(handler)
+
+    def get_handlers(self):
+        logger.warning('No handlers found')
+        return ()
 
     def run(self):
         self._updater.start_polling()
-        logger.info(f'{self._tgbot_username} started')
+        logger.info('%s started', self._tgbot_username)
         self._updater.idle()
 
     def extract(self, update_obj):
@@ -85,7 +92,7 @@ class BaseBot:
         else:
             raise NotImplementedError
 
-    def _call_bot_api(self, method_name: str, **kwargs):
+    def call_bot_api(self, method_name: str, **kwargs):
         """
         Here is retry logic and logic for dealing with network and load issues
         """
@@ -145,7 +152,7 @@ class BaseBot:
 
     def send_msg(self, chat_id, body, msg_id=None, markup=None, html=None, preview=False):
         parse_mode = telegram.ParseMode.HTML if html else None
-        success, resp = self._call_bot_api(
+        success, resp = self.call_bot_api(
             'send_message',
             chat_id=chat_id, text=body, reply_to_message_id=msg_id, reply_markup=markup,
             parse_mode=parse_mode, disable_web_page_preview=not preview,
@@ -153,14 +160,14 @@ class BaseBot:
         return success, resp
 
     def edit_msg_text(self, chat_id, body, msg_id, preview=False):
-        success, resp = self._call_bot_api(
+        success, resp = self.call_bot_api(
             'edit_message_text',
             text=body, chat_id=chat_id, message_id=msg_id, disable_web_page_preview=not preview,
         )
         return success, resp
 
     def delete_msg(self, chat_id, msg_id):
-        success, resp = self._call_bot_api(
+        success, resp = self.call_bot_api(
             'delete_message',
             chat_id=chat_id, message_id=msg_id,
         )
