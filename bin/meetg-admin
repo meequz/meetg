@@ -1,3 +1,120 @@
 #!/usr/bin/env python3
+import os, sys
 
-print('meetg-admin works')
+
+BOT_MAIN_PY = '''
+from meetg.botting import BaseBot
+from telegram.ext import CommandHandler, MessageHandler
+from telegram.ext import Filters, Updater
+
+
+class {bot_class_name}(BaseBot):
+    """Example of your bot"""
+
+    def get_handlers(self):
+        handlers = (
+            CommandHandler('start', self.reply_start, Filters.chat_type.private),
+            MessageHandler(Filters.text, self.reply_any),
+        )
+        return handlers
+
+    def reply_start(self, update_obj, context):
+        chat_id, msg_id, user, text = self.extract(update_obj)
+        answer = 'Hello, world! Here is a reply to /start command'
+        self.send_msg(chat_id, answer)
+
+    def reply_any(self, update_obj, context):
+        chat_id, msg_id, user, text = self.extract(update_obj)
+        answer = 'And here is a reply to any text message'
+        self.send_msg(chat_id, answer)
+'''
+
+MANAGE_PY = '''
+import os, sys
+
+from meetg.manage import exec_args
+
+
+def main():
+    src_path = os.path.dirname(os.path.abspath(__file__))
+    exec_args(sys.argv, src_path)
+
+
+if __name__ == '__main__':
+    main()
+'''
+
+SETTINGS_PY = '''
+from meetg.default_settings import *
+
+
+tg_api_token = ''
+
+mongo_db_name = '{db_name}'
+
+bot_class = 'bot.main.{bot_class_name}'
+'''
+
+PROJECT_CREATED = '''
+Project {project_name} created. Fill the empty variables in settings.py,
+and you are ready to run it by: python3 manage.py run
+
+To start coding, open bot/main.py
+'''.strip()
+
+
+def to_camelcase(string):
+    camel_string = ''
+    up_next = True
+    for char in string.strip():
+        if char.isalpha():
+            if up_next:
+                char = char.upper()
+            camel_string += char
+            up_next = False
+        else:
+            up_next = True
+    return camel_string
+
+
+def create_file(path, content):
+    dir_path = os.path.dirname(path)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    with open(path, 'w') as f:
+        f.write(content.lstrip())
+
+
+def start_project(name, dir_path):
+    camelcase_name = to_camelcase(name)
+    camelcase_uncap = camelcase_name[0].lower() + camelcase_name[1:]
+    bot_class_name = f'{camelcase_name}Bot'
+    db_name = f'{camelcase_uncap}DB'
+
+    bot_path = os.path.join(dir_path, 'bot')
+
+    main_py_content = BOT_MAIN_PY.format(bot_class_name=bot_class_name)
+    main_py_path = os.path.join(bot_path, 'main.py')
+    create_file(main_py_path, main_py_content)
+
+    settings_py_content = SETTINGS_PY.format(bot_class_name=bot_class_name, db_name=db_name)
+    settings_py_path = os.path.join(dir_path, 'settings.py')
+    create_file(settings_py_path, settings_py_content)
+
+    manage_py_path = os.path.join(dir_path, 'manage.py')
+    create_file(manage_py_path, MANAGE_PY)
+
+
+def main():
+    dir_path = os.getcwd()
+    args = sys.argv
+
+    if len(args) > 2 and args[1] == 'startproject':
+        start_project(args[2], dir_path)
+        print(PROJECT_CREATED.format(project_name=args[2]))
+    else:
+        print('Usage: meetg-admin startproject my_project')
+
+
+if __name__ == '__main__':
+    main()
