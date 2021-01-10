@@ -3,9 +3,15 @@ import logging
 
 tg_api_token = ''
 
-mongo_db_name = ''
-mongo_db_name_test = ''
-mongo_user_collection_name = 'users'
+db_name = ''
+db_name_test = ''
+user_table = 'users'
+
+db_host = 'localhost'
+db_port = 27017
+storage = 'meetg.storage.MongoStorage'
+user_model_class = 'meetg.storage.DefaultUserModel'
+model_classes = (user_model_class, )
 
 bot_class = 'bot.MyBot'
 db_class = 'meetg.storage.Database'

@@ -11,10 +11,7 @@ KNOWN_ARGS = ('run', 'test')
 
 def run():
     Bot = import_string(settings.bot_class)
-    DB = import_string(settings.db_class)
-    db = DB(settings.mongo_db_name)
-    bot = Bot(db)
-    bot.run()
+    Bot().run()
 
 
 def test(src_path):

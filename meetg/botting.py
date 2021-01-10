@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import Updater
 
 import settings
-from meetg.utils import serialize_user
+from meetg.utils import import_string, serialize_user
 from meetg.loging import get_logger
 from meetg.testing import UpdaterBotMock, create_test_message
 
@@ -16,7 +16,7 @@ logger = get_logger()
 class BaseBot:
     """Common Telegram bot logic"""
 
-    def __init__(self, db, mock=False):
+    def __init__(self, mock=False):
         self._is_mock = mock
         if mock:
             self._tgbot = UpdaterBotMock()
@@ -25,8 +25,8 @@ class BaseBot:
             self._updater = Updater(settings.tg_api_token, use_context=True)
             self._tgbot = self._updater.bot
             self._tgbot_username = self._updater.bot.get_me().username
-        self._db = db
         self._init_handlers()
+        self._user_model = import_string(settings.user_model_class)()
 
     def _init_handlers(self):
         self._handlers = self.get_handlers()
@@ -66,7 +66,7 @@ class BaseBot:
         """
         chat_id = update_obj.message.chat.id
         msg_id = update_obj.message.message_id
-        user = self._db.get_user(chat_id)
+        user = self._user_model.get_one(chat_id)
         text = update_obj.message.text
 
         contact = update_obj.message.contact
@@ -75,9 +75,9 @@ class BaseBot:
         tg_user_obj = update_obj.message.from_user
 
         if user:
-            user = self._db.update_user_from_tg_user_obj(tg_user_obj)
+            user = self._user_model.update_from_obj(tg_user_obj)
         else:
-            user = self._db.create_user_from_tg_user_obj(tg_user_obj)
+            user = self._user_model.create_from_obj(tg_user_obj)
 
         if contact:
             logger.info('Received contact from %s', chat_id)
@@ -119,8 +119,8 @@ class BaseBot:
         Here is retry logic and logic for dealing with network and load issues
         """
         if self._is_mock:
-            self.last_api_method = method_name
-            self.last_api_args = kwargs
+            self.api_method_called = method_name
+            self.api_args_used = kwargs
             return None, None
 
         to_attempt = 5
@@ -135,17 +135,16 @@ class BaseBot:
                 success = True
                 to_attempt = 0
             except telegram.error.NetworkError as exc:
+                prefix = 'Network error: '
                 if 'are exactly the same as' in exc.message:
-                    logger.error('Network error: "%s". It\'s ok, nothing to do here', exc.message)
+                    logger.error(prefix + '"%s". It\'s ok, nothing to do here', exc.message)
                     success = True
                     to_attempt = 0
                 elif "Can't parse entities" in exc.message:
-                    logger.error('Network error: "%s". Retrying is pointless', exc.message)
+                    logger.error(prefix + '"%s". Retrying is pointless', exc.message)
                     to_attempt = 0
                 else:
-                    logger.error(
-                        'Network error: "%s". Waiting 2 seconds then retry', exc.message,
-                    )
+                    logger.error(prefix + '"%s". Waiting 2 seconds then retry', exc.message)
                     to_attempt -= 1
                     time.sleep(2)
                 resp = exc.message
@@ -154,9 +153,7 @@ class BaseBot:
                 resp = exc.message
                 to_attempt -= 1
             except telegram.error.RetryAfter as exc:
-                logger.error(
-                    'Telegram says to wait and retry after %s seconds. Doing', exc.retry_after,
-                )
+                logger.error('It is asked to retry after %s seconds. Doing', exc.retry_after)
                 resp = exc.message
                 to_attempt -= 2
                 time.sleep(exc.retry_after + 1)
@@ -185,7 +182,7 @@ class BaseBot:
             parse_mode=parse_mode, disable_web_page_preview=not preview,
         )
         if self._is_mock:
-            self.last_api_text = body
+            self.api_text_sent = body
         return success, resp
 
     def edit_msg_text(self, chat_id, body, msg_id, preview=False):

@@ -50,8 +50,8 @@ from meetg.default_settings import *
 
 tg_api_token = ''
 
-mongo_db_name = '{name_cc_uncap}DB'
-mongo_db_name_test = '{name_cc_uncap}TestDB'
+db_name = '{name_cc_uncap}DB'
+db_name_test = '{name_cc_uncap}TestDB'
 
 bot_class = 'bot.main.{name_cc}Bot'
 '''
@@ -64,11 +64,11 @@ class ReplyTest(BotTestCase):
 
     def test_reply_start(self):
         self.bot.test_send('/start')
-        assert self.bot.last_api_text == 'Hello, world! Here is a reply to /start command'
+        assert self.bot.api_text_sent == 'Hello, world! Here is a reply to /start command'
 
     def test_reply_any(self):
         self.bot.test_send('uyui')
-        assert self.bot.last_api_text == 'And here is a reply to any text message'
+        assert self.bot.api_text_sent == 'And here is a reply to any text message'
 '''
 
 PROJECT_CREATED = '''
