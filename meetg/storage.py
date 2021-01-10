@@ -54,14 +54,14 @@ class MongoStorage(AbstractStorage):
         self.db = getattr(self.client, db_name)
         self.table = getattr(self.db, table_name)
 
-    def create(self, entry):
+    def create(self, **entry):
         return self.table.insert_one(entry)
 
-    def update(self, pattern, update):
-        return self.table.update_many(pattern, update)
+    def update(self, pattern, new_data):
+        return self.table.update_many(pattern, {'$set': new_data})
 
-    def update_one(self, pattern, update):
-        return self.table.update_one(pattern, update)
+    def update_one(self, pattern, new_data):
+        return self.table.update_one(pattern, {'$set': new_data})
 
     def count(self, pattern=None):
         return self.table.count(pattern)
@@ -110,46 +110,31 @@ class DefaultUserModel:
     def drop(self):
         self._storage.drop()
 
-    def create(self, **data):
+    def create(self, chat_id, **data):
         user_data = self._validate(**data)
-        chat_id = user_data['chat_id']
-        self._storage.create(user_data)
+        self._storage.create(**user_data)
         logger.info('User %s added to DB', chat_id)
         return user_data
 
-    def create_from_obj(self, tg_user):
-        user_data = {
-            'chat_id': tg_user.id,
-            'username': tg_user.username,
-            'first_name': tg_user.first_name,
-            'last_name': tg_user.last_name,
-            'is_bot': tg_user.is_bot,
-            'language_code': tg_user.language_code,
-        }
-        user = self.create(**user_data)
-        return user
+    def create_from_obj(self, user):
+        chat_id = user.id
+        user_data = self.create(chat_id, **user.to_dict())
+        return user_data
 
     def update(self, chat_id, **data):
         user_data = self._validate(chat_id=chat_id, **data)
-        result = self._storage.update_one({'chat_id': chat_id}, {'$set': user_data})
-        user = self.get_one(chat_id)
+        result = self._storage.update_one({'chat_id': chat_id}, user_data)
+        db_user = self.find_one(chat_id)
         logger.info('User %s updated in DB', chat_id)
-        return user
+        return db_user
 
-    def update_from_obj(self, tg_user):
-        chat_id = tg_user.id
-        user_data = {
-            'username': tg_user.username,
-            'first_name': tg_user.first_name,
-            'last_name': tg_user.last_name,
-            'is_bot': tg_user.is_bot,
-            'language_code': tg_user.language_code,
-        }
-        user = self.update(chat_id, **user_data)
-        return user
+    def update_from_obj(self, user):
+        chat_id = user.id
+        db_user = self.update(chat_id, **user.to_dict())
+        return db_user
 
-    def get_one(self, chat_id):
+    def find_one(self, chat_id):
         return self._storage.find_one({'chat_id': chat_id})
 
-    def get(self, pattern=None):
+    def find(self, pattern=None):
         return [u for u in self._storage.find(pattern)]

@@ -63,7 +63,7 @@ class BaseBot:
 
     def _save_user(self, user):
         if self.save_users:
-            db_user = self.user_model.get_one(user.id)
+            db_user = self.user_model.find_one(user.id)
             if db_user:
                 self.user_model.update_from_obj(user)
             else:

@@ -45,11 +45,11 @@ class BaseBotTest(BaseTestCase):
         """
         self.bot = TestBotSavingUsers(mock=True)
 
-        users = self.bot.user_model.get()
+        users = self.bot.user_model.find()
         assert not users
 
         self.bot.test_send('/start')
-        users = self.bot.user_model.get()
+        users = self.bot.user_model.find()
         assert users
 
     def test_not_save_user(self):
@@ -58,9 +58,9 @@ class BaseBotTest(BaseTestCase):
         """
         self.bot = TestBotNotSavingUsers(mock=True)
 
-        users = self.bot.user_model.get()
+        users = self.bot.user_model.find()
         assert not users
 
         self.bot.test_send('/start')
-        users = self.bot.user_model.get()
+        users = self.bot.user_model.find()
         assert not users
