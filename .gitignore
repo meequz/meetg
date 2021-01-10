@@ -5,3 +5,4 @@ dist
 *.egg-info
 info.txt
 test_pr*
+log.txt

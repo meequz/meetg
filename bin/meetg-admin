@@ -11,7 +11,7 @@ from telegram.ext import Filters, Updater
 class {name_cc}Bot(BaseBot):
     """Example of your bot"""
 
-    def get_handlers(self):
+    def set_handlers(self):
         handlers = (
             CommandHandler('start', self.reply_start, Filters.chat_type.private),
             MessageHandler(Filters.text, self.reply_any),

@@ -27,15 +27,15 @@ class BaseBot:
             self._tgbot = self._updater.bot
             self._tgbot_username = self._updater.bot.get_me().username
         self._init_handlers()
-        self.user_model = import_string(settings.user_model_class)()
+        self.user_model = import_string(settings.user_model_class)(test=mock)
 
     def _init_handlers(self):
-        self._handlers = self.get_handlers()
+        self._handlers = self.set_handlers()
         if not self._is_mock:
             for handler in self._handlers:
                 self._updater.dispatcher.add_handler(handler)
 
-    def get_handlers(self):
+    def set_handlers(self):
         logger.warning('No handlers found')
         return ()
 

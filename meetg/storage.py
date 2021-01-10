@@ -151,5 +151,5 @@ class DefaultUserModel:
     def get_one(self, chat_id):
         return self._storage.find_one({'chat_id': chat_id})
 
-    def get(self, pattern):
-        return self._storage.find(pattern)
+    def get(self, pattern=None):
+        return [u for u in self._storage.find(pattern)]
