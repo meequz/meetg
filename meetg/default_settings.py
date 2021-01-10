@@ -9,7 +9,7 @@ user_table = 'users'
 
 db_host = 'localhost'
 db_port = 27017
-storage = 'meetg.storage.MongoStorage'
+storage_class = 'meetg.storage.MongoStorage'
 user_model_class = 'meetg.storage.DefaultUserModel'
 model_classes = (user_model_class, )
 

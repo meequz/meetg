@@ -93,7 +93,7 @@ class DefaultUserModel:
     )
 
     def __init__(self):
-        Storage = import_string(settings.storage)
+        Storage = import_string(settings.storage_class)
         self._storage = Storage(
             db_name=settings.db_name, table_name=settings.user_table, host=settings.db_host,
             port=settings.db_port,
@@ -107,12 +107,13 @@ class DefaultUserModel:
         self._storage.drop()
 
     def create(self, **data):
-        user_data = self._validate(data)
-        chat_id = user_data['chat_id']
-        self._storage.create(user_data)
-        logger.info('User %s added to DB', chat_id)
-        logger.debug('id %s is user %s', chat_id, serialize_user(user_data))
-        return user_data
+        if self.to_save:
+            user_data = self._validate(data)
+            chat_id = user_data['chat_id']
+            self._storage.create(user_data)
+            logger.info('User %s added to DB', chat_id)
+            logger.debug('id %s is user %s', chat_id, serialize_user(user_data))
+            return user_data
 
     def create_from_obj(self, tg_user):
         user_data = {
@@ -127,12 +128,13 @@ class DefaultUserModel:
         return user
 
     def update(self, chat_id, **data):
-        user_data = self._validate(chat_id=chat_id, **data)
-        result = self._storage.update_one({'chat_id': chat_id}, {'$set': new_data})
-        user = self.get_one(chat_id)
-        logger.info('User %s updated in DB', chat_id)
-        logger.debug('id %s is user %s', chat_id, serialize_user(user))
-        return user
+        if self.to_save:
+            user_data = self._validate(chat_id=chat_id, **data)
+            result = self._storage.update_one({'chat_id': chat_id}, {'$set': new_data})
+            user = self.get_one(chat_id)
+            logger.info('User %s updated in DB', chat_id)
+            logger.debug('id %s is user %s', chat_id, serialize_user(user))
+            return user
 
     def update_from_obj(self, tg_user):
         chat_id = tg_user.id
