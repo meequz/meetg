@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import Updater
 
 import settings
-from meetg.utils import import_string, serialize_user
+from meetg.utils import import_string
 from meetg.loging import get_logger
 from meetg.testing import UpdaterBotMock, create_test_message
 
@@ -15,6 +15,7 @@ logger = get_logger()
 
 class BaseBot:
     """Common Telegram bot logic"""
+    save_users = True
 
     def __init__(self, mock=False):
         self._is_mock = mock
@@ -26,7 +27,7 @@ class BaseBot:
             self._tgbot = self._updater.bot
             self._tgbot_username = self._updater.bot.get_me().username
         self._init_handlers()
-        self._user_model = import_string(settings.user_model_class)()
+        self.user_model = import_string(settings.user_model_class)()
 
     def _init_handlers(self):
         self._handlers = self.get_handlers()
@@ -60,43 +61,34 @@ class BaseBot:
         logger.info('%s started', self._tgbot_username)
         self._updater.idle()
 
+    def _save_user(self, user):
+        if self.save_users:
+            db_user = self.user_model.get_one(user.id)
+            if db_user:
+                self.user_model.update_from_obj(user)
+            else:
+                self.user_model.create_from_obj(user)
+
     def extract(self, update_obj):
-        """Extract commonly used info from update_obj,
+        """
+        Extract commonly used info from update_obj,
         save users in db if they're new, log new message
         """
         chat_id = update_obj.message.chat.id
         msg_id = update_obj.message.message_id
-        user = self._user_model.get_one(chat_id)
+        user = update_obj.message.from_user
         text = update_obj.message.text
+        self._save_user(user)
 
         contact = update_obj.message.contact
         location = update_obj.message.location
-        text_for_log = repr(text or '')
-        tg_user_obj = update_obj.message.from_user
-
-        if user:
-            user = self._user_model.update_from_obj(tg_user_obj)
-        else:
-            user = self._user_model.create_from_obj(tg_user_obj)
 
         if contact:
-            logger.info('Received contact from %s', chat_id)
-            logger.debug(
-                'id %s is user %s, contact is %s', chat_id, serialize_user(user),
-                contact.phone_number,
-            )
+            logger.info('Received contact from chat %s', chat_id)
         elif location:
-            logger.info('Received location from %s', chat_id)
-            logger.debug(
-                'id %s is user %s, location is %s', chat_id, serialize_user(user),
-                location,
-            )
+            logger.info('Received location from chat %s', chat_id)
         else:
-            logger.info('Received message with len %s from %s', len(text or ''), chat_id)
-            logger.debug(
-                'id %s is user %s, message is: %s', chat_id, serialize_user(user),
-                text_for_log[:119],
-            )
+            logger.info('Received message from chat %s, text length %s', chat_id, len(text or ''))
         return chat_id, msg_id, user, text
 
     def _log_api_call(self, method_name, kwargs):
@@ -105,12 +97,11 @@ class BaseBot:
         text = repr(kwargs.get('text', ''))
 
         if method_name == 'send_message':
-            logger.info('Sending message with len %s to %s', len(text), chat_id)
-            logger.debug('Message: %s', text[:119])
+            logger.info('Send message to chat %s, text length %s', chat_id, len(text))
         elif method_name == 'edit_message_text':
-            logger.info('Editing message %s in chat %s', message_id, chat_id)
+            logger.info('Edit message %s in chat %s', message_id, chat_id)
         elif method_name == 'delete_message':
-            logger.info('Deleting message %s in chat %s', message_id, chat_id)
+            logger.info('Delete message %s in chat %s', message_id, chat_id)
         else:
             raise NotImplementedError
 

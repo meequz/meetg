@@ -10,17 +10,6 @@ def generate_random_string(length=22):
     return random_string
 
 
-def serialize_user(user_data):
-    username = user_data.get('username')
-    if username:
-        username_part = f'@{username}'
-    else:
-        username_part = 'no username'
-
-    user_str = f'{user_data["first_name"]} {user_data["last_name"]} ({username_part})'
-    return user_str
-
-
 def message_contain(msg, words):
     msg_words = msg.lower().split()
     for msg_word in msg_words:
