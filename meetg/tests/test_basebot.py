@@ -32,12 +32,13 @@ class TestBotNotSavingObjects(TestBot):
 
 
 class SaveObjectsTest(BaseTestCase):
-
-    @parameterized.expand([
+    model_chat_combinations = (
         ['user_model', 'private'], ['user_model', 'group'], ['user_model', 'supergroup'],
         ['chat_model', 'private'], ['chat_model', 'group'], ['chat_model', 'supergroup'],
         ['message_model', 'private'], ['message_model', 'group'], ['message_model', 'supergroup'],
-    ])
+    )
+
+    @parameterized.expand(model_chat_combinations)
     def test_save_object(self, model_name, chat_type):
         """
         Ensure the bot saves users, chats and messages in DB
@@ -48,11 +49,7 @@ class SaveObjectsTest(BaseTestCase):
         self.bot.test_send('Spam', chat_type=chat_type)
         assert model.find()
 
-    @parameterized.expand([
-        ['user_model', 'private'], ['user_model', 'group'], ['user_model', 'supergroup'],
-        ['chat_model', 'private'], ['chat_model', 'group'], ['chat_model', 'supergroup'],
-        ['message_model', 'private'], ['message_model', 'group'], ['message_model', 'supergroup'],
-    ])
+    @parameterized.expand(model_chat_combinations)
     def test_not_save_object(self, model_name, chat_type):
         """
         Ensure the bot does NOT save users, chats and messages in DB
@@ -62,3 +59,19 @@ class SaveObjectsTest(BaseTestCase):
         assert not model.find()
         self.bot.test_send('Spam', chat_type=chat_type)
         assert not model.find()
+
+    @parameterized.expand((['user_model'], ['chat_model'], ['message_model']))
+    def test_obj_saved_with_id(self, model_name):
+        self.bot = TestBotSavingObjects(mock=True)
+        model = getattr(self.bot, model_name)
+        self.bot.test_send('Spam')
+        db_objects = model.find()
+        assert len(db_objects) == 1
+        assert model.db_id_field in db_objects[0]
+
+    def test_message_saved_without_text(self):
+        self.bot = TestBotSavingObjects(mock=True)
+        self.bot.test_send('Spam')
+        messages = self.bot.message_model.find()
+        assert len(messages) == 1
+        assert not 'text' in messages[0]

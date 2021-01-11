@@ -99,7 +99,7 @@ class BaseDefaultModel:
         )
 
     def _validate(self, data):
-        validated_data = {field: data[field] for field in data if field in self.fields}
+        validated_data = {field: data[field] for field in data if field in self.save_fields}
         return validated_data
 
     def drop(self):
@@ -155,6 +155,7 @@ class DefaultUserModel(BaseDefaultModel):
         # if the user share it
         'phone_number', 'lat', 'lon',
     )
+    save_fields = fields
 
 
 class DefaultChatModel(BaseDefaultModel):
@@ -173,6 +174,7 @@ class DefaultChatModel(BaseDefaultModel):
         'invite_link', 'pinned_message', 'permissions', 'slow_mode_delay', 'sticker_set_name',
         'can_set_sticker_set', 'linked_chat_id', 'location',
     )
+    save_fields = fields
 
 
 class DefaultMessageModel(BaseDefaultModel):
@@ -195,3 +197,4 @@ class DefaultMessageModel(BaseDefaultModel):
         'invoice', 'successful_payment', 'connected_website', 'passport_data',
         'proximity_alert_triggered', 'reply_markup',
     )
+    save_fields = 'message_id', 'date', 'chat', 'from'
