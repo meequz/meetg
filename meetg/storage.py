@@ -84,6 +84,7 @@ class MongoStorage(AbstractStorage):
 
 class BaseDefaultModel:
     settings_table_name = None
+    tg_id_field = None
 
     def __init__(self, test=False):
         if test:
@@ -104,8 +105,33 @@ class BaseDefaultModel:
     def drop(self):
         self._storage.drop()
 
+    def create(self, obj_id, data):
+        user_data = self._validate(data)
+        user_data[self.tg_id_field] = obj_id
+        self._storage.create(user_data)
+        logger.info('%s %s added to DB', self.name, obj_id)
+        return user_data
+
+    def create_from_obj(self, user):
+        user_data = self.create(user.id, user.to_dict())
+        return user_data
+
+    def update(self, obj_id, data):
+        user_data = self._validate(data)
+        self._storage.update_one({self.tg_id_field: obj_id}, user_data)
+        logger.info('%s %s updated in DB', self.name, obj_id)
+        user_data[self.tg_id_field] = obj_id
+        return user_data
+
+    def update_from_obj(self, user):
+        user_data = self.update(user.id, user.to_dict())
+        return user_data
+
     def find(self, pattern=None):
         return [obj for obj in self._storage.find(pattern)]
+
+    def find_one(self, obj_id):
+        return self._storage.find_one({self.tg_id_field: obj_id})
 
 
 class DefaultUserModel(BaseDefaultModel):
@@ -114,36 +140,53 @@ class DefaultUserModel(BaseDefaultModel):
     Note that field for user.id called user_id, not id.
     Other fields have the same names as in PTB
     """
+    name = 'User'
     settings_table_name = 'user_table'
+    tg_id_field = 'user_id'
     fields = (
         # required
-        'user_id', 'first_name', 'is_bot',
+        'user_id', 'is_bot', 'first_name',
         # optional
-        'last_name', 'username', 'language_code', 'phone_number', 'lat', 'lon',
-        'can_join_groups', 'can_read_all_group_messages', 'supports_inline_queries',
+        'last_name', 'username', 'language_code', 'can_join_groups', 'can_read_all_group_messages',
+        'supports_inline_queries',
+        # if the user share it
+        'phone_number', 'lat', 'lon',
     )
 
-    def create(self, user_id, data):
-        user_data = self._validate(data)
-        user_data['user_id'] = user_id
-        self._storage.create(user_data)
-        logger.info('User %s added to DB', user_id)
-        return user_data
 
-    def create_from_obj(self, user):
-        user_data = self.create(user.id, user.to_dict())
-        return user_data
+class DefaultChatModel(BaseDefaultModel):
+    """
+    Field for chat.id called chat_id, not id.
+    """
+    name = 'Chat'
+    settings_table_name = 'chat_table'
+    tg_id_field = 'chat_id'
+    fields = (
+        # required
+        'chat_id', 'type',
+        # optional
+        'title', 'username', 'first_name', 'last_name', 'photo', 'bio', 'description',
+        'invite_link', 'pinned_message', 'permissions', 'slow_mode_delay', 'sticker_set_name',
+        'can_set_sticker_set', 'linked_chat_id', 'location',
+    )
 
-    def update(self, user_id, data):
-        user_data = self._validate(data)
-        self._storage.update_one({'user_id': user_id}, user_data)
-        logger.info('User %s updated in DB', user_id)
-        user_data['user_id'] = user_id
-        return user_data
 
-    def update_from_obj(self, user):
-        user_data = self.update(user.id, user.to_dict())
-        return user_data
-
-    def find_one(self, user_id):
-        return self._storage.find_one({'user_id': user_id})
+class DefaultMessageModel(BaseDefaultModel):
+    name = 'Message'
+    settings_table_name = 'message_table'
+    tg_id_field = 'message_id'
+    fields = (
+        # required
+        'message_id', 'date', 'chat',
+        # optional
+        'from', 'sender_chat', 'forward_from', 'forward_from_chat', 'forward_from_message_id',
+        'forward_signature', 'forward_sender_name', 'forward_date', 'reply_to_message', 'via_bot',
+        'edit_date', 'media_group_id', 'author_signature', 'text', 'entities', 'animation',
+        'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'caption',
+        'caption_entities', 'contact', 'dice', 'game', 'poll', 'venue', 'location',
+        'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo',
+        'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created',
+        'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message',
+        'invoice', 'successful_payment', 'connected_website', 'passport_data',
+        'proximity_alert_triggered', 'reply_markup',
+    )

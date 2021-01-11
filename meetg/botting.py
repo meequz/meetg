@@ -27,7 +27,7 @@ class BaseBot:
             self._tgbot = self._updater.bot
             self._tgbot_username = self._updater.bot.get_me().username
         self._init_handlers()
-        self.user_model = import_string(settings.user_model_class)(test=mock)
+        self._init_models(test=mock)
 
     def _init_handlers(self):
         self._handlers = self.set_handlers()
@@ -38,6 +38,11 @@ class BaseBot:
     def set_handlers(self):
         logger.warning('No handlers found')
         return ()
+
+    def _init_models(self, test=False):
+        self.user_model = import_string(settings.user_model_class)(test=test)
+        self.chat_model = import_string(settings.chat_model_class)(test=test)
+        self.message_model = import_string(settings.message_model_class)(test=test)
 
     def _mock_process_update(self, update_obj):
         """Simulation of telegram.ext.dispatcher.Dispatcher.process_update()"""
