@@ -8,7 +8,7 @@ with open('README.md') as f:
 
 setup(
     name='meetg',
-    version='0.4',
+    version='0.4.1',
     packages=['meetg'],
     scripts=['bin/meetg-admin'],
     description='Framework for creating Telegram bots',
@@ -18,7 +18,7 @@ setup(
     author='Mikhail Varantsou',
     license='LGPL-3.0',
     author_email='meequz@gmail.com',
-    install_requires=['python-telegram-bot', 'pymongo'],
+    install_requires=['parameterized', 'python-telegram-bot', 'pymongo'],
     keywords='telegram bot framework',
     classifiers=[
         'Intended Audience :: Developers',

@@ -1,3 +1,4 @@
+from parameterized import parameterized
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext import Filters
 
@@ -33,12 +34,13 @@ class SaveUsersTest(BaseTestCase):
         self.bot = TestBotSavingUsers(mock=True)
         assert not self.bot.user_model.find()
 
-    def test_save_user_in_private(self):
-        self.bot.test_send('Spam')
-        assert self.bot.user_model.find()
-
-    def test_save_user_in_group(self):
-        self.bot.test_send('Spam', chat_type='group')
+    @parameterized.expand([
+        ['private'],
+        ['group'],
+        ['supergroup'],
+    ])
+    def test_save_user(self, chat_type):
+        self.bot.test_send('Spam', chat_type=chat_type)
         assert self.bot.user_model.find()
 
 
@@ -51,10 +53,11 @@ class NotSaveUsersTest(BaseTestCase):
         self.bot = TestBotNotSavingUsers(mock=True)
         assert not self.bot.user_model.find()
 
-    def test_not_save_user_in_private(self):
-        self.bot.test_send('Spam')
-        assert not self.bot.user_model.find()
-
-    def test_not_save_user_in_group(self):
-        self.bot.test_send('Spam', chat_type='group')
+    @parameterized.expand([
+        ['private'],
+        ['group'],
+        ['supergroup'],
+    ])
+    def test_not_save_user(self, chat_type):
+        self.bot.test_send('Spam', chat_type=chat_type)
         assert not self.bot.user_model.find()
