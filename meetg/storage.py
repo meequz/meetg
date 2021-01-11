@@ -54,7 +54,7 @@ class MongoStorage(AbstractStorage):
         self.db = getattr(self.client, db_name)
         self.table = getattr(self.db, table_name)
 
-    def create(self, **entry):
+    def create(self, entry):
         return self.table.insert_one(entry)
 
     def update(self, pattern, new_data):
@@ -103,35 +103,34 @@ class DefaultUserModel:
             port=settings.db_port,
         )
 
-    def _validate(self, **data):
+    def _validate(self, data):
         validated_data = {field: data[field] for field in data if field in self.fields}
         return validated_data
 
     def drop(self):
         self._storage.drop()
 
-    def create(self, chat_id, **data):
-        user_data = self._validate(**data)
-        self._storage.create(**user_data)
+    def create(self, chat_id, data):
+        user_data = self._validate(data)
+        user_data['chat_id'] = chat_id
+        self._storage.create(user_data)
         logger.info('User %s added to DB', chat_id)
         return user_data
 
     def create_from_obj(self, user):
-        chat_id = user.id
-        user_data = self.create(chat_id, **user.to_dict())
+        user_data = self.create(user.id, user.to_dict())
         return user_data
 
-    def update(self, chat_id, **data):
-        user_data = self._validate(chat_id=chat_id, **data)
-        result = self._storage.update_one({'chat_id': chat_id}, user_data)
-        db_user = self.find_one(chat_id)
+    def update(self, chat_id, data):
+        user_data = self._validate(data)
+        self._storage.update_one({'chat_id': chat_id}, user_data)
         logger.info('User %s updated in DB', chat_id)
-        return db_user
+        user_data['chat_id'] = chat_id
+        return user_data
 
     def update_from_obj(self, user):
-        chat_id = user.id
-        db_user = self.update(chat_id, **user.to_dict())
-        return db_user
+        user_data = self.update(user.id, user.to_dict())
+        return user_data
 
     def find_one(self, chat_id):
         return self._storage.find_one({'chat_id': chat_id})

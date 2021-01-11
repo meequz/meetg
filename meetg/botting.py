@@ -49,7 +49,7 @@ class BaseBot:
     def test_send(self, message):
         """
         Method to use in auto tests.
-        Simulates sending messages to the bot
+        Simulates sending messages from user to the bot
         """
         if isinstance(message, str):
             message = create_test_message(message, self._tgbot)
@@ -97,7 +97,7 @@ class BaseBot:
         text = repr(kwargs.get('text', ''))
 
         if method_name == 'send_message':
-            logger.info('Send message to chat %s, text length %s', chat_id, len(text))
+            logger.info('Send answer to chat %s, text length %s', chat_id, len(text))
         elif method_name == 'edit_message_text':
             logger.info('Edit message %s in chat %s', message_id, chat_id)
         elif method_name == 'delete_message':
@@ -105,14 +105,23 @@ class BaseBot:
         else:
             raise NotImplementedError
 
+    def _mock_remember(self, method_name, method_args):
+        """
+        If the object of the class is a mock,
+        then just remember the API method and the args going to be used
+        """
+        self.api_method_called = method_name
+        self.api_args_used = method_args
+        if 'text' in method_args:
+            self.api_text_sent = method_args.get('text', '')
+        return None, None
+
     def call_bot_api(self, method_name: str, **kwargs):
         """
-        Here is retry logic and logic for dealing with network and load issues
+        Retries and handling network and load issues
         """
         if self._is_mock:
-            self.api_method_called = method_name
-            self.api_args_used = kwargs
-            return None, None
+            return self._mock_remember(method_name, kwargs)
 
         to_attempt = 5
         success = False
@@ -172,8 +181,6 @@ class BaseBot:
             chat_id=chat_id, text=body, reply_to_message_id=msg_id, reply_markup=markup,
             parse_mode=parse_mode, disable_web_page_preview=not preview,
         )
-        if self._is_mock:
-            self.api_text_sent = body
         return success, resp
 
     def edit_msg_text(self, chat_id, body, msg_id, preview=False):
