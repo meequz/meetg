@@ -50,26 +50,35 @@ def create_test_message(string, bot):
     return message
 
 
-def create_chat_obj(chat_id=None, chat_type='private'):
-    if chat_id is None:
-        if chat_type == 'private':
-            chat_id = 1
-        elif chat_type in ('group', 'supergroup'):
-            chat_id = -1
-    chat = Chat(chat_id, chat_type)
+def create_chat_obj(chat_id=None, chat_type='private', title=None):
+    if chat_type == 'private':
+        chat_id = chat_id or 1
+    elif chat_type in ('group', 'supergroup'):
+        chat_id = chat_id or -1
+    else:
+        raise NotImplementedError
+    chat = Chat(id=chat_id, type=chat_type, title=title)
     return chat
+
+
+def create_user_obj(user_id=1, first_name='Michael', last_name='Palin', is_bot=False):
+    user = User(id=user_id, first_name=first_name, last_name=last_name, is_bot=is_bot)
+    return user
 
 
 def create_message_obj(
         message_id=1, chat_type='private', text='spam', user_id=1, chat_id=None, bot=None,
+        user_first_name='Michael', user_last_name=None, chat_title=None,
     ):
     """
     A helper to create fake update objects for testing purposes.
     Generate a private message by default
     """
     date = datetime.datetime.now()
-    chat = create_chat_obj(chat_id=chat_id, chat_type=chat_type)
-    user = User(id=user_id, first_name=f'User {user_id} first name', is_bot=False)
+    chat = create_chat_obj(chat_id=chat_id, chat_type=chat_type, title=chat_title)
+    user = create_user_obj(
+        user_id=user_id, first_name=user_first_name, last_name=user_last_name, is_bot=False,
+    )
     entities = parse_entities(text)
     message = Message(
         message_id=message_id, text=text, date=date, chat=chat, from_user=user,
@@ -80,7 +89,8 @@ def create_message_obj(
 
 def create_update_obj(
         update_id=1, message=None, message_id=1, chat_type='private', message_text='spam',
-        user_id=1, chat_id=None, bot=None,
+        user_id=1, chat_id=None, bot=None, user_first_name='Michael', user_last_name=None,
+        chat_title=None,
     ):
     """
     A helper to create fake update objects for testing purposes.
@@ -89,7 +99,8 @@ def create_update_obj(
     if message is None:
         message = create_message_obj(
             message_id=message_id, chat_type=chat_type, text=message_text, user_id=user_id,
-            chat_id=chat_id, bot=bot,
+            chat_id=chat_id, bot=bot, user_first_name=user_first_name,
+            user_last_name=user_last_name, chat_title=chat_title,
         )
     update_obj = Update(update_id, message=message)
     return update_obj

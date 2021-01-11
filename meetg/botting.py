@@ -52,13 +52,19 @@ class BaseBot:
             if check not in (None, False):
                 return handler.callback(update_obj, None)
 
-    def test_send(self, message_text: str, chat_type='private'):
+    def test_send(
+            self, message_text: str, user_first_name=None, chat_title=None, chat_type='private',
+        ):
         """
         Method to use in auto tests.
         Simulate sending messages to the bot
         """
+        kwargs = {}
+        if user_first_name is not None:
+            kwargs['user_first_name'] = user_first_name
         update_obj = create_update_obj(
-            message_text=message_text, chat_type=chat_type, bot=self._tgbot,
+            message_text=message_text, chat_type=chat_type, chat_title=chat_title, bot=self._tgbot,
+            **kwargs,
         )
         return self._mock_process_update(update_obj)
 

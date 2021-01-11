@@ -135,8 +135,11 @@ class BaseDefaultModel:
     def find(self, pattern=None):
         return [obj for obj in self._storage.find(pattern)]
 
-    def find_one(self, obj_id):
-        return self._storage.find_one({self.db_id_field: obj_id})
+    def find_one(self, obj_id=None):
+        pattern = None
+        if obj_id:
+            pattern = {self.db_id_field: obj_id}
+        return self._storage.find_one(pattern)
 
 
 class DefaultUserModel(BaseDefaultModel):
