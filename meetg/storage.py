@@ -106,26 +106,28 @@ class BaseDefaultModel:
         self._storage.drop()
 
     def create(self, obj_id, data):
-        user_data = self._validate(data)
-        user_data[self.tg_id_field] = obj_id
-        self._storage.create(user_data)
+        data = self._validate(data)
+        data[self.db_id_field] = obj_id
+        self._storage.create(data)
         logger.info('%s %s added to DB', self.name, obj_id)
-        return user_data
+        return data
 
-    def create_from_obj(self, user):
-        user_data = self.create(user.id, user.to_dict())
-        return user_data
+    def create_from_obj(self, obj):
+        obj_id = getattr(obj, self.tg_id_field)
+        data = self.create(obj_id, obj.to_dict())
+        return data
 
     def update(self, obj_id, data):
-        user_data = self._validate(data)
-        self._storage.update_one({self.tg_id_field: obj_id}, user_data)
+        data = self._validate(data)
+        self._storage.update_one({self.tg_id_field: obj_id}, data)
         logger.info('%s %s updated in DB', self.name, obj_id)
-        user_data[self.tg_id_field] = obj_id
-        return user_data
+        data[self.db_id_field] = obj_id
+        return data
 
-    def update_from_obj(self, user):
-        user_data = self.update(user.id, user.to_dict())
-        return user_data
+    def update_from_obj(self, obj):
+        obj_id = getattr(obj, tg_id_field)
+        data = self.update(obj_id, obj.to_dict())
+        return data
 
     def find(self, pattern=None):
         return [obj for obj in self._storage.find(pattern)]
@@ -142,7 +144,8 @@ class DefaultUserModel(BaseDefaultModel):
     """
     name = 'User'
     settings_table_name = 'user_table'
-    tg_id_field = 'user_id'
+    tg_id_field = 'id'
+    db_id_field = 'user_id'
     fields = (
         # required
         'user_id', 'is_bot', 'first_name',
@@ -160,7 +163,8 @@ class DefaultChatModel(BaseDefaultModel):
     """
     name = 'Chat'
     settings_table_name = 'chat_table'
-    tg_id_field = 'chat_id'
+    tg_id_field = 'id'
+    db_id_field = 'chat_id'
     fields = (
         # required
         'chat_id', 'type',
@@ -175,6 +179,7 @@ class DefaultMessageModel(BaseDefaultModel):
     name = 'Message'
     settings_table_name = 'message_table'
     tg_id_field = 'message_id'
+    db_id_field = 'message_id'
     fields = (
         # required
         'message_id', 'date', 'chat',

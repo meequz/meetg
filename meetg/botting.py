@@ -67,21 +67,29 @@ class BaseBot:
         logger.info('%s started', self._tgbot_username)
         self._updater.idle()
 
-    def _save_user(self, user):
+    def _save(self, update_obj):
+        """
+        Save all the object have to be saved according to bot attrs in DB
+        """
         if self.save_users:
-            db_user = self.user_model.find_one(user.id)
-            if db_user:
-                self.user_model.update_from_obj(user)
-            else:
-                self.user_model.create_from_obj(user)
-
-    def _save_chat(self, chat):
+            user = update_obj.message.from_user
+            self._save_obj(user.id, user, self.user_model)
         if self.save_chats:
-            db_chat = self.chat_model.find_one(chat.id)
-            if db_chat:
-                self.chat_model.update_from_obj(chat)
-            else:
-                self.chat_model.create_from_obj(chat)
+            chat = update_obj.message.chat
+            self._save_obj(chat.id, chat, self.chat_model)
+        if self.save_messages:
+            message = update_obj.message
+            self._save_obj(message.message_id, message, self.message_model)
+
+    def _save_obj(self, obj_id, obj, model):
+        """
+        Save an object in DB
+        """
+        db_obj = model.find_one(obj_id)
+        if db_obj:
+            model.update_from_obj(obj)
+        else:
+            model.create_from_obj(obj)
 
     def extract(self, update_obj):
         """
@@ -92,8 +100,7 @@ class BaseBot:
         msg_id = update_obj.message.message_id
         user = update_obj.message.from_user
         text = update_obj.message.text
-        self._save_user(user)
-        self._save_chat(update_obj.message.chat)
+        self._save(update_obj)
 
         contact = update_obj.message.contact
         location = update_obj.message.location

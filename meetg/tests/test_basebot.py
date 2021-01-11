@@ -7,7 +7,9 @@ from meetg.tests.base import BaseTestCase
 
 
 class TestBot(BaseBot):
-
+    """
+    The simplest bot with just one very wide handler
+    """
     def set_handlers(self):
         handlers = (MessageHandler(Filters.text, self.reply_any), )
         return handlers
@@ -17,74 +19,46 @@ class TestBot(BaseBot):
         self.send_msg(chat_id, 'reply to any msg')
 
 
-class TestBotSavingUsers(TestBot):
+class TestBotSavingObjects(TestBot):
     save_users = True
-
-
-class TestBotNotSavingUsers(TestBot):
-    save_users = False
-
-
-class TestBotSavingChats(TestBot):
     save_chats = True
+    save_messages = True
 
 
-class TestBotNotSavingChats(TestBot):
+class TestBotNotSavingObjects(TestBot):
+    save_users = False
     save_chats = False
+    save_messages = False
 
 
-class SaveUserTest(BaseTestCase):
-    """
-    Bot must save new users by default
-    """
-    def setUp(self):
-        super().setUp()
-        self.bot = TestBotSavingUsers(mock=True)
-        assert not self.bot.user_model.find()
+class SaveObjectsTest(BaseTestCase):
 
     @parameterized.expand([
-        ['private'],
-        ['group'],
-        ['supergroup'],
+        ['user_model', 'private'], ['user_model', 'group'], ['user_model', 'supergroup'],
+        ['chat_model', 'private'], ['chat_model', 'group'], ['chat_model', 'supergroup'],
+        ['message_model', 'private'], ['message_model', 'group'], ['message_model', 'supergroup'],
     ])
-    def test_save_user(self, chat_type):
+    def test_save_object(self, model_name, chat_type):
+        """
+        Ensure the bot saves users, chats and messages in DB
+        """
+        self.bot = TestBotSavingObjects(mock=True)
+        model = getattr(self.bot, model_name)
+        assert not model.find()
         self.bot.test_send('Spam', chat_type=chat_type)
-        assert self.bot.user_model.find()
-
-
-class NotSaveUserTest(BaseTestCase):
-    """
-    Bot must not save new users when save_users = False
-    """
-    def setUp(self):
-        super().setUp()
-        self.bot = TestBotNotSavingUsers(mock=True)
-        assert not self.bot.user_model.find()
+        assert model.find()
 
     @parameterized.expand([
-        ['private'],
-        ['group'],
-        ['supergroup'],
+        ['user_model', 'private'], ['user_model', 'group'], ['user_model', 'supergroup'],
+        ['chat_model', 'private'], ['chat_model', 'group'], ['chat_model', 'supergroup'],
+        ['message_model', 'private'], ['message_model', 'group'], ['message_model', 'supergroup'],
     ])
-    def test_not_save_user(self, chat_type):
+    def test_not_save_object(self, model_name, chat_type):
+        """
+        Ensure the bot does NOT save users, chats and messages in DB
+        """
+        self.bot = TestBotNotSavingObjects(mock=True)
+        model = getattr(self.bot, model_name)
+        assert not model.find()
         self.bot.test_send('Spam', chat_type=chat_type)
-        assert not self.bot.user_model.find()
-
-
-class SaveChatTest(BaseTestCase):
-    """
-    Bot must save new chats by default
-    """
-    def setUp(self):
-        super().setUp()
-        self.bot = TestBotSavingChats(mock=True)
-        assert not self.bot.chat_model.find()
-
-    @parameterized.expand([
-        ['private'],
-        ['group'],
-        ['supergroup'],
-    ])
-    def test_save_chat(self, chat_type):
-        self.bot.test_send('Spam', chat_type=chat_type)
-        assert self.bot.chat_model.find()
+        assert not model.find()
