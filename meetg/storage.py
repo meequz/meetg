@@ -82,14 +82,8 @@ class MongoStorage(AbstractStorage):
         return self.db.drop_collection(self.table_name)
 
 
-class DefaultUserModel:
-    fields = (
-        # required
-        'chat_id', 'first_name', 'is_bot',
-        # optional
-        'last_name', 'username', 'language_code', 'phone_number', 'lat', 'lon',
-        'can_join_groups', 'can_read_all_group_messages', 'supports_inline_queries',
-    )
+class BaseDefaultModel:
+    settings_table_name = None
 
     def __init__(self, test=False):
         if test:
@@ -97,10 +91,10 @@ class DefaultUserModel:
         else:
             db_name = settings.db_name
 
+        table_name = getattr(settings, self.settings_table_name)
         Storage = import_string(settings.storage_class)
         self._storage = Storage(
-            db_name=db_name, table_name=settings.user_table, host=settings.db_host,
-            port=settings.db_port,
+            db_name=db_name, table_name=table_name, host=settings.db_host, port=settings.db_port,
         )
 
     def _validate(self, data):
@@ -110,30 +104,46 @@ class DefaultUserModel:
     def drop(self):
         self._storage.drop()
 
-    def create(self, chat_id, data):
+    def find(self, pattern=None):
+        return [obj for obj in self._storage.find(pattern)]
+
+
+class DefaultUserModel(BaseDefaultModel):
+    """
+    Model to save and read Users in database.
+    Note that field for user.id called user_id, not id.
+    Other fields have the same names as in PTB
+    """
+    settings_table_name = 'user_table'
+    fields = (
+        # required
+        'user_id', 'first_name', 'is_bot',
+        # optional
+        'last_name', 'username', 'language_code', 'phone_number', 'lat', 'lon',
+        'can_join_groups', 'can_read_all_group_messages', 'supports_inline_queries',
+    )
+
+    def create(self, user_id, data):
         user_data = self._validate(data)
-        user_data['chat_id'] = chat_id
+        user_data['user_id'] = user_id
         self._storage.create(user_data)
-        logger.info('User %s added to DB', chat_id)
+        logger.info('User %s added to DB', user_id)
         return user_data
 
     def create_from_obj(self, user):
         user_data = self.create(user.id, user.to_dict())
         return user_data
 
-    def update(self, chat_id, data):
+    def update(self, user_id, data):
         user_data = self._validate(data)
-        self._storage.update_one({'chat_id': chat_id}, user_data)
-        logger.info('User %s updated in DB', chat_id)
-        user_data['chat_id'] = chat_id
+        self._storage.update_one({'user_id': user_id}, user_data)
+        logger.info('User %s updated in DB', user_id)
+        user_data['user_id'] = user_id
         return user_data
 
     def update_from_obj(self, user):
         user_data = self.update(user.id, user.to_dict())
         return user_data
 
-    def find_one(self, chat_id):
-        return self._storage.find_one({'chat_id': chat_id})
-
-    def find(self, pattern=None):
-        return [u for u in self._storage.find(pattern)]
+    def find_one(self, user_id):
+        return self._storage.find_one({'user_id': user_id})
