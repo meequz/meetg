@@ -1,13 +1,9 @@
 import datetime, logging, unittest
 
-from telegram import Update
-from telegram.chat import Chat
-from telegram.message import Message
-from telegram.messageentity import MessageEntity
-from telegram.user import User
+from telegram import Chat, Message, Update, User
 
 import settings
-from meetg.utils import dict_to_obj, import_string
+from meetg.utils import dict_to_obj, import_string, parse_entities
 
 
 class BotTestCase(unittest.TestCase):
@@ -42,23 +38,11 @@ def create_mock_bot():
     return bot
 
 
-def _parse_entities(string):
-    entities = []
-    if string.startswith('/'):
-        entity = MessageEntity(
-            type=MessageEntity.BOT_COMMAND,
-            offset=0,
-            length=len(string.split()[0]),
-        )
-        entities.append(entity)
-    return entities
-
-
 def create_test_message(string, bot):
     date = datetime.datetime.now()
     chat = Chat(1, 'private')
     user = User(id=1, first_name='Firstname', is_bot=False)
-    entities = _parse_entities(string)
+    entities = parse_entities(string)
     message = Message(
         message_id=1, text=string, date=date, chat=chat, from_user=user, entities=entities,
         bot=bot,
@@ -86,7 +70,7 @@ def create_message_obj(
     date = datetime.datetime.now()
     chat = create_chat_obj(chat_id=chat_id, chat_type=chat_type)
     user = User(id=user_id, first_name=f'User {user_id} first name', is_bot=False)
-    entities = _parse_entities(text)
+    entities = parse_entities(text)
     message = Message(
         message_id=message_id, text=text, date=date, chat=chat, from_user=user,
         entities=entities, bot=bot,

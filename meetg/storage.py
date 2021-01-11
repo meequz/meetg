@@ -46,8 +46,12 @@ class AbstractStorage:
 
 
 class MongoStorage(AbstractStorage):
-    """Wrapper for MongoDB collection methods"""
-
+    """
+    Wrapper for MongoDB collection methods. Is is some kind of an ORM.
+    Another potential storage, e.g. PostgreStorage, have to implement the same methods,
+    allowing the same args to them. But I'm not sure it will be handful.
+    So methods and args may change in time.
+    """
     def __init__(self, db_name, table_name, host='localhost', port=27017):
         super().__init__(db_name, table_name, host, port)
         self.client = pymongo.MongoClient(host=host, port=port)
@@ -103,37 +107,36 @@ class BaseDefaultModel:
         return validated_data
 
     def drop(self):
-        self._storage.drop()
+        return self._storage.drop()
 
     def create(self, obj_id, data):
         data = self._validate(data)
         data[self.db_id_field] = obj_id
-        self._storage.create(data)
+        result = self._storage.create(data)
         logger.info('%s %s added to DB', self.name, obj_id)
-        return data
+        return result
 
     def create_from_obj(self, obj):
         obj_id = getattr(obj, self.tg_id_field)
-        data = self.create(obj_id, obj.to_dict())
-        return data
+        result = self.create(obj_id, obj.to_dict())
+        return result
 
     def update(self, obj_id, data):
         data = self._validate(data)
-        self._storage.update_one({self.tg_id_field: obj_id}, data)
+        result = self._storage.update_one({self.db_id_field: obj_id}, data)
         logger.info('%s %s updated in DB', self.name, obj_id)
-        data[self.db_id_field] = obj_id
-        return data
+        return result
 
     def update_from_obj(self, obj):
-        obj_id = getattr(obj, tg_id_field)
-        data = self.update(obj_id, obj.to_dict())
-        return data
+        obj_id = getattr(obj, self.tg_id_field)
+        result = self.update(obj_id, obj.to_dict())
+        return result
 
     def find(self, pattern=None):
         return [obj for obj in self._storage.find(pattern)]
 
     def find_one(self, obj_id):
-        return self._storage.find_one({self.tg_id_field: obj_id})
+        return self._storage.find_one({self.db_id_field: obj_id})
 
 
 class DefaultUserModel(BaseDefaultModel):

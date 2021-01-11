@@ -2,6 +2,8 @@ import random, string, time
 from collections import namedtuple
 from importlib import import_module
 
+from telegram.messageentity import MessageEntity
+
 
 def generate_random_string(length=22):
     population = string.ascii_letters + string.digits
@@ -43,3 +45,20 @@ def import_string(dotted_path):
 
 def dict_to_obj(name, dictionary: dict):
     return namedtuple(name, dictionary.keys())(*dictionary.values())
+
+
+def parse_entities(string):
+    """
+    In real world, Telegram server does it.
+    But for testing we may automatically create them
+    to not create in tests each time.
+    """
+    entities = []
+    if string.startswith('/'):
+        entity = MessageEntity(
+            type=MessageEntity.BOT_COMMAND,
+            offset=0,
+            length=len(string.split()[0]),
+        )
+        entities.append(entity)
+    return entities
