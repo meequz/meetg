@@ -25,7 +25,15 @@ class TestBotNotSavingUsers(TestBot):
     save_users = False
 
 
-class SaveUsersTest(BaseTestCase):
+class TestBotSavingChats(TestBot):
+    save_chats = True
+
+
+class TestBotNotSavingChats(TestBot):
+    save_chats = False
+
+
+class SaveUserTest(BaseTestCase):
     """
     Bot must save new users by default
     """
@@ -44,7 +52,7 @@ class SaveUsersTest(BaseTestCase):
         assert self.bot.user_model.find()
 
 
-class NotSaveUsersTest(BaseTestCase):
+class NotSaveUserTest(BaseTestCase):
     """
     Bot must not save new users when save_users = False
     """
@@ -61,3 +69,22 @@ class NotSaveUsersTest(BaseTestCase):
     def test_not_save_user(self, chat_type):
         self.bot.test_send('Spam', chat_type=chat_type)
         assert not self.bot.user_model.find()
+
+
+class SaveChatTest(BaseTestCase):
+    """
+    Bot must save new chats by default
+    """
+    def setUp(self):
+        super().setUp()
+        self.bot = TestBotSavingChats(mock=True)
+        assert not self.bot.chat_model.find()
+
+    @parameterized.expand([
+        ['private'],
+        ['group'],
+        ['supergroup'],
+    ])
+    def test_save_chat(self, chat_type):
+        self.bot.test_send('Spam', chat_type=chat_type)
+        assert self.bot.chat_model.find()

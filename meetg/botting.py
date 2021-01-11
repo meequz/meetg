@@ -15,6 +15,8 @@ logger = get_logger()
 class BaseBot:
     """Common Telegram bot logic"""
     save_users = True
+    save_chats = True
+    save_messages = False
 
     def __init__(self, mock=False):
         self._is_mock = mock
@@ -73,6 +75,14 @@ class BaseBot:
             else:
                 self.user_model.create_from_obj(user)
 
+    def _save_chat(self, chat):
+        if self.save_chats:
+            db_chat = self.chat_model.find_one(chat.id)
+            if db_chat:
+                self.chat_model.update_from_obj(chat)
+            else:
+                self.chat_model.create_from_obj(chat)
+
     def extract(self, update_obj):
         """
         Extract commonly used info from update_obj,
@@ -83,6 +93,7 @@ class BaseBot:
         user = update_obj.message.from_user
         text = update_obj.message.text
         self._save_user(user)
+        self._save_chat(update_obj.message.chat)
 
         contact = update_obj.message.contact
         location = update_obj.message.location
