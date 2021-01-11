@@ -1,13 +1,12 @@
 import time
 
 import telegram
-from telegram import Update
 from telegram.ext import Updater
 
 import settings
 from meetg.utils import import_string
 from meetg.loging import get_logger
-from meetg.testing import UpdaterBotMock, create_test_message
+from meetg.testing import UpdaterBotMock, create_update_obj
 
 
 logger = get_logger()
@@ -51,14 +50,14 @@ class BaseBot:
             if check not in (None, False):
                 return handler.callback(update_obj, None)
 
-    def test_send(self, message):
+    def test_send(self, message_text: str, chat_type='private'):
         """
         Method to use in auto tests.
-        Simulates sending messages from user to the bot
+        Simulate sending messages to the bot
         """
-        if isinstance(message, str):
-            message = create_test_message(message, self._tgbot)
-        update_obj = Update(1, message=message)
+        update_obj = create_update_obj(
+            message_text=message_text, chat_type=chat_type, bot=self._tgbot,
+        )
         return self._mock_process_update(update_obj)
 
     def run(self):
