@@ -1,12 +1,13 @@
-import time
+import datetime, time
 
 import telegram
+import pytz
 from telegram.ext import Updater
 
 import settings
 from meetg.loging import get_logger
 from meetg.storage import get_model_classes
-from meetg.testing import UpdaterBotMock, create_update_obj
+from meetg.testing import UpdaterMock, create_update_obj
 from meetg.utils import import_string
 
 
@@ -22,23 +23,21 @@ class BaseBot:
     def __init__(self, mock=False):
         self._is_mock = mock
         self._init_tgbot()
-        self._init_handlers()
         self._init_models(test=mock)
+        self._init_handlers()
+        self.set_jobs()
 
     def _init_tgbot(self):
-        if self._is_mock:
-            self._tgbot = UpdaterBotMock()
-            self._username = self._tgbot.username
-        else:
-            self._updater = Updater(settings.tg_api_token, use_context=True)
-            self._tgbot = self._updater.bot
-            self._username = self._updater.bot.get_me().username
+        updater_class = UpdaterMock if self._is_mock else Updater
+        self.updater = updater_class(settings.tg_api_token, use_context=True)
+        self._tgbot = self.updater.bot
+        self._username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
         self._handlers = self.set_handlers()
         if not self._is_mock:
             for handler in self._handlers:
-                self._updater.dispatcher.add_handler(handler)
+                self.updater.dispatcher.add_handler(handler)
 
     def set_handlers(self):
         """
@@ -46,6 +45,14 @@ class BaseBot:
         """
         logger.warning('No handlers found')
         return ()
+
+    def set_jobs(self):
+        """
+        Set default jobs to self.updater.job_queue.
+        May be redefined in a subclass, but don't forget to call super() then
+        """
+        stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))
+        self.updater.job_queue.run_daily(self.job_stats, stats_dt)
 
     def _init_models(self, test=False):
         """Read model classes from settings, import and add them to self"""
@@ -76,10 +83,16 @@ class BaseBot:
         )
         return self._mock_process_update(update_obj)
 
+    def job_stats(self, context):
+        """Report bots stats"""
+        if settings.stats_to:
+            body = 'Stats: 1, 2'
+            self.broadcast(settings.stats_to, body)
+
     def run(self):
-        self._updater.start_polling()
+        self.updater.start_polling()
         logger.info('%s started', self._username)
-        self._updater.idle()
+        self.updater.idle()
 
     def _save(self, update_obj):
         self.update_model.create(update_obj.to_dict())
@@ -112,7 +125,7 @@ class BaseBot:
         text = repr(kwargs.get('text', ''))
 
         if method_name == 'send_message':
-            logger.info('Send answer to chat %s, text length %s', chat_id, len(text))
+            logger.info('Send message to chat %s, text length %s', chat_id, len(text))
         elif method_name == 'edit_message_text':
             logger.info('Edit message %s in chat %s', message_id, chat_id)
         elif method_name == 'delete_message':

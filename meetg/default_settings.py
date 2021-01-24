@@ -16,3 +16,5 @@ bot_class = 'bot.MyBot'
 
 log_path = 'log.txt'
 log_level = logging.INFO
+
+stats_to = ()

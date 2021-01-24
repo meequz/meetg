@@ -123,15 +123,19 @@ class BaseDefaultModel:
         result = self._storage.drop()
         return result
 
+    def _log_create(self, data: dict):
+        if self.tg_id_field:
+            logger.info('Storage: %s %s created', self.name, data[self.tg_id_field])
+        else:
+            logger.info('Storage: %s created', self.name)
+
     def create(self, data: dict):
         data = self._validate(data)
+        result = None
         if data:
             result = self._storage.create(data)
-            if self.tg_id_field:
-                logger.info('Storage: %s %s created', self.name, data[self.tg_id_field])
-            else:
-                logger.info('Storage: %s created', self.name)
-            return result
+            self._log_create(data)
+        return result
 
     def find(self, pattern=None):
         found = [obj for obj in self._storage.find(pattern)]

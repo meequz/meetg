@@ -54,6 +54,8 @@ db_name = '{name_cc_uncap}DB'
 db_name_test = '{name_cc_uncap}TestDB'
 
 bot_class = 'bot.main.{name_cc}Bot'
+
+stats_to = ()  # Telegram IDs where to report bot stats
 '''
 
 TEST_REPLY_PY = '''
@@ -72,12 +74,13 @@ class ReplyTest(BotTestCase):
 '''
 
 PROJECT_CREATED = '''
-Project {name} created. cd to project directory,
-fill the empty variables in settings.py, and you are ready to go.
+Project {name} created.
 
-Run it as: python3 manage.py run
-Run tests as: python3 manage.py test
+Now cd to the project directory, fill at least tg_api_token var in settings.py,
+and you are ready to go.
 
+To run: python3 manage.py run
+To run tests: python3 manage.py test
 To start coding, open bot/main.py
 '''.strip()
 

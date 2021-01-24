@@ -45,12 +45,25 @@ class BotTestCase(BaseTestCase):
         self.bot = create_mock_bot()
 
 
-class UpdaterBotMock:
+class JobQueueMock:
+
+    def run_daily(self, callback, period):
+        pass
+
+
+class BotMock:
     username = 'mock_username'
 
     def get_me(self):
         me = dict_to_obj('Me', {'username': self.username})
         return me
+
+
+class UpdaterMock:
+
+    def __init__(self, *args, **kwargs):
+        self.job_queue = JobQueueMock()
+        self.bot = BotMock()
 
 
 def create_mock_bot():
