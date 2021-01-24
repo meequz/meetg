@@ -62,3 +62,8 @@ def parse_entities(string):
         )
         entities.append(entity)
     return entities
+
+
+def get_unixtime_before_now(hours: int):
+    before = time.time() - hours * 60 * 60
+    return before

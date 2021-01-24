@@ -3,7 +3,7 @@ import time
 import pymongo
 
 import settings
-from meetg.utils import import_string
+from meetg.utils import get_unixtime_before_now, import_string
 from meetg.loging import get_logger
 
 
@@ -144,6 +144,20 @@ class BaseDefaultModel:
     def find_one(self, pattern=None):
         found = self._storage.find_one(pattern)
         return found
+
+    def count(self, pattern=None):
+        counted = self._storage.count(pattern)
+        return counted
+
+    def get_count_report(self):
+        pattern = {
+            'meetg_created_at': {
+                '$lt': time.time(),
+                '$gte': get_unixtime_before_now(24),
+            },
+        }
+        updates_received = self.count(pattern)
+        return f'received {updates_received} update objects'
 
 
 class DefaultUpdateModel(BaseDefaultModel):

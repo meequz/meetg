@@ -86,7 +86,10 @@ class BaseBot:
     def job_stats(self, context):
         """Report bots stats"""
         if settings.stats_to:
-            body = 'Stats: 1, 2'
+            reports = '\n- '.join([
+                self.update_model.get_count_report(),
+            ])
+            body = f'@{self._username} for the last 24 hours:\n- {reports}'
             self.broadcast(settings.stats_to, body)
 
     def run(self):
@@ -200,7 +203,7 @@ class BaseBot:
     def broadcast(self, chat_ids, body, html=False):
         for chat_id in chat_ids:
             self.send_msg(chat_id, body, html=html)
-        logger.info('Broadcasted: %s', body[:79])
+        logger.info('Broadcasted: %s', repr(body[:79]))
 
     def send_msg(self, chat_id, body, msg_id=None, markup=None, html=None, preview=False):
         parse_mode = telegram.ParseMode.HTML if html else None
