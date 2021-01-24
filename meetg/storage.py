@@ -1,3 +1,5 @@
+import time
+
 import pymongo
 
 import settings
@@ -64,12 +66,15 @@ class MongoStorage(AbstractStorage):
         self.table = getattr(self.db, table_name)
 
     def create(self, entry):
+        entry['meetg_created_at'] = time.time()
         return self.table.insert_one(entry)
 
     def update(self, pattern, new_data):
+        new_data['meetg_modified_at'] = time.time()  # needs testing
         return self.table.update_many(pattern, {'$set': new_data})
 
     def update_one(self, pattern, new_data):
+        new_data['meetg_modified_at'] = time.time()  # needs testing
         return self.table.update_one(pattern, {'$set': new_data})
 
     def count(self, pattern=None):

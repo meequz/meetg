@@ -45,3 +45,10 @@ class SaveUpdateTest(BaseTestCase):
         assert not model.find()
         self.bot.test_send('Spam')
         assert not model.find()
+
+    def test_save_update_with_created_at(self):
+        """Ensure the bot adds own timestamp when saves update object"""
+        self.bot = TestBot(mock=True)
+        model = self.bot.update_model
+        self.bot.test_send('Spam')
+        assert 'meetg_created_at' in model.find_one()
