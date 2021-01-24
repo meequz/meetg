@@ -78,7 +78,7 @@ class MongoStorage(AbstractStorage):
         return self.table.update_one(pattern, {'$set': new_data})
 
     def count(self, pattern=None):
-        return self.table.count(pattern)
+        return self.table.count_documents(pattern)
 
     def find(self, pattern=None):
         return self.table.find(pattern)

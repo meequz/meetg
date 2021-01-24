@@ -51,7 +51,7 @@ class BaseBot:
         Set default jobs to self.updater.job_queue.
         May be redefined in a subclass, but don't forget to call super() then
         """
-        stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))
+        stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))  # 00:00 UTC
         self.updater.job_queue.run_daily(self.job_stats, stats_dt)
 
     def _init_models(self, test=False):
@@ -85,12 +85,14 @@ class BaseBot:
 
     def job_stats(self, context):
         """Report bots stats"""
-        if settings.stats_to:
-            reports = '\n- '.join([
-                self.update_model.get_count_report(),
-            ])
-            body = f'@{self._username} for the last 24 hours:\n- {reports}'
-            self.broadcast(settings.stats_to, body)
+        if not settings.stats_to:
+            return
+
+        reports = '\n- '.join([
+            self.update_model.get_count_report(),
+        ])
+        body = f'@{self._username} for the last 24 hours:\n- {reports}'
+        self.broadcast(settings.stats_to, body)
 
     def run(self):
         self.updater.start_polling()

@@ -4,7 +4,7 @@ from telegram.ext import Filters
 import settings
 from meetg.botting import BaseBot
 from meetg.storage import DefaultUpdateModel
-from meetg.tests.base import BaseTestCase
+from meetg.tests.base import MeetgBaseTestCase
 
 
 class TestBot(BaseBot):
@@ -25,30 +25,34 @@ class NoSaveUpdateModel(DefaultUpdateModel):
     save_fields = ()
 
 
-class SaveUpdateTest(BaseTestCase):
+class SaveUpdateTest(MeetgBaseTestCase):
 
     def test_save_update(self):
         """Ensure the bot saves update object in storage"""
-        self.bot = TestBot(mock=True)
-        model = self.bot.update_model
-
-        assert not model.find()
-        self.bot.test_send('Spam')
-        assert model.find()
+        bot = TestBot(mock=True)
+        assert not bot.update_model.find()
+        bot.test_send('Spam')
+        assert bot.update_model.find()
 
     def test_no_save_update(self):
         """Ensure the bot doesn't save update object in storage"""
         settings.update_model_class = 'meetg.tests.test_basebot.NoSaveUpdateModel'
-        self.bot = TestBot(mock=True)
-        model = self.bot.update_model
-
-        assert not model.find()
-        self.bot.test_send('Spam')
-        assert not model.find()
+        bot = TestBot(mock=True)
+        assert not bot.update_model.find()
+        bot.test_send('Spam')
+        assert not bot.update_model.find()
 
     def test_save_update_with_created_at(self):
         """Ensure the bot adds own timestamp when saves update object"""
-        self.bot = TestBot(mock=True)
-        model = self.bot.update_model
-        self.bot.test_send('Spam')
-        assert 'meetg_created_at' in model.find_one()
+        bot = TestBot(mock=True)
+        bot.test_send('Spam')
+        assert 'meetg_created_at' in bot.update_model.find_one()
+
+
+class StatTest(MeetgBaseTestCase):
+
+    def test_stats_msg_broadcasted(self):
+        settings.stats_to = (1, )
+        bot = TestBot(mock=True)
+        bot.job_stats(None)
+        assert bot.api_text_sent.startswith('@mock_username for the')
