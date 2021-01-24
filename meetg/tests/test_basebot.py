@@ -16,7 +16,7 @@ class TestBot(BaseBot):
         return handlers
 
     def reply_any(self, update_obj, context):
-        chat_id, msg_id, user, text = self.extract(update_obj)
+        chat_id = self.proceed(update_obj, 'message.chat.id')
         self.send_msg(chat_id, 'reply to any msg')
 
 

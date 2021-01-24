@@ -67,3 +67,10 @@ def parse_entities(string):
 def get_unixtime_before_now(hours: int):
     before = time.time() - hours * 60 * 60
     return before
+
+
+def extract_by_dotted_path(dikt, path):
+    value = dikt
+    for part in path.split('.'):
+        value = value.get(part, {})
+    return value or None

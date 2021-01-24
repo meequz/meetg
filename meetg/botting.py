@@ -8,7 +8,7 @@ import settings
 from meetg.loging import get_logger
 from meetg.storage import get_model_classes
 from meetg.testing import UpdaterMock, create_update_obj
-from meetg.utils import import_string
+from meetg.utils import extract_by_dotted_path, import_string
 
 
 logger = get_logger()
@@ -102,27 +102,19 @@ class BaseBot:
     def _save(self, update_obj):
         self.update_model.create(update_obj.to_dict())
 
-    def extract(self, update_obj):
+    def proceed(self, update_obj, *args):
         """
-        Extract commonly used info from update_obj,
-        save users in db if they're new, log new message
+        Extract data from update_obj according to args,
+        save required data in database, log new message
         """
-        chat_id = update_obj.message.chat.id
-        msg_id = update_obj.message.message_id
-        user = update_obj.message.from_user
-        text = update_obj.message.text
         self._save(update_obj)
+        update_dict = update_obj.to_dict()
 
-        contact = update_obj.message.contact
-        location = update_obj.message.location
-
-        if contact:
-            logger.info('Received contact from chat %s', chat_id)
-        elif location:
-            logger.info('Received location from chat %s', chat_id)
-        else:
-            logger.info('Received message from chat %s, text length %s', chat_id, len(text or ''))
-        return chat_id, msg_id, user, text
+        extracted = []
+        for dotted_path in args:
+            value = extract_by_dotted_path(update_dict, dotted_path)
+            extracted.append(value)
+        return extracted
 
     def _log_api_call(self, method_name, kwargs):
         chat_id = kwargs.get('chat_id')
