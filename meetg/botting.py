@@ -4,9 +4,10 @@ import telegram
 from telegram.ext import Updater
 
 import settings
-from meetg.utils import import_string
 from meetg.loging import get_logger
+from meetg.storage import get_model_classes
 from meetg.testing import UpdaterBotMock, create_update_obj
+from meetg.utils import import_string
 
 
 logger = get_logger()
@@ -20,15 +21,18 @@ class BaseBot:
 
     def __init__(self, mock=False):
         self._is_mock = mock
-        if mock:
+        self._init_tgbot()
+        self._init_handlers()
+        self._init_models(test=mock)
+
+    def _init_tgbot(self):
+        if self._is_mock:
             self._tgbot = UpdaterBotMock()
-            self._tgbot_username = self._tgbot.username
+            self._username = self._tgbot.username
         else:
             self._updater = Updater(settings.tg_api_token, use_context=True)
             self._tgbot = self._updater.bot
-            self._tgbot_username = self._updater.bot.get_me().username
-        self._init_handlers()
-        self._init_models(test=mock)
+            self._username = self._updater.bot.get_me().username
 
     def _init_handlers(self):
         self._handlers = self.set_handlers()
@@ -37,13 +41,17 @@ class BaseBot:
                 self._updater.dispatcher.add_handler(handler)
 
     def set_handlers(self):
+        """
+        This method intended to be redefined in your bot class
+        """
         logger.warning('No handlers found')
         return ()
 
     def _init_models(self, test=False):
-        self.user_model = import_string(settings.user_model_class)(test=test)
-        self.chat_model = import_string(settings.chat_model_class)(test=test)
-        self.message_model = import_string(settings.message_model_class)(test=test)
+        """Read model classes from settings, import and add them to self"""
+        for model_class in get_model_classes():
+            model = import_string(model_class)(test=test)
+            setattr(self, f'{model.name_lower}_model', model)
 
     def _mock_process_update(self, update_obj):
         """Simulation of telegram.ext.dispatcher.Dispatcher.process_update()"""
@@ -70,32 +78,11 @@ class BaseBot:
 
     def run(self):
         self._updater.start_polling()
-        logger.info('%s started', self._tgbot_username)
+        logger.info('%s started', self._username)
         self._updater.idle()
 
     def _save(self, update_obj):
-        """
-        Save all the object have to be saved according to bot attrs in DB
-        """
-        if self.save_users:
-            user = update_obj.message.from_user
-            self._save_obj(user.id, user, self.user_model)
-        if self.save_chats:
-            chat = update_obj.message.chat
-            self._save_obj(chat.id, chat, self.chat_model)
-        if self.save_messages:
-            message = update_obj.message
-            self._save_obj(message.message_id, message, self.message_model)
-
-    def _save_obj(self, obj_id, obj, model):
-        """
-        Save an object in DB
-        """
-        db_obj = model.find_one(obj_id)
-        if db_obj:
-            model.update_from_obj(obj)
-        else:
-            model.create_from_obj(obj)
+        self.update_model.create(update_obj.to_dict())
 
     def extract(self, update_obj):
         """

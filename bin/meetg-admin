@@ -14,7 +14,7 @@ class {name_cc}Bot(BaseBot):
     def set_handlers(self):
         handlers = (
             CommandHandler('start', self.reply_start, Filters.chat_type.private),
-            MessageHandler(Filters.text, self.reply_any),
+            MessageHandler(Filters.all, self.reply_any),
         )
         return handlers
 
@@ -25,7 +25,7 @@ class {name_cc}Bot(BaseBot):
 
     def reply_any(self, update_obj, context):
         chat_id, msg_id, user, text = self.extract(update_obj)
-        answer = 'And here is a reply to any text message'
+        answer = 'And here is a reply to any message'
         self.send_msg(chat_id, answer)
 '''
 
@@ -68,12 +68,15 @@ class ReplyTest(BotTestCase):
 
     def test_reply_any(self):
         self.bot.test_send('uyui')
-        assert self.bot.api_text_sent == 'And here is a reply to any text message'
+        assert self.bot.api_text_sent == 'And here is a reply to any message'
 '''
 
 PROJECT_CREATED = '''
-Project {name} created. Fill the empty variables in settings.py,
-and you are ready to run it by: python3 manage.py run
+Project {name} created. cd to project directory,
+fill the empty variables in settings.py, and you are ready to go.
+
+Run it as: python3 manage.py run
+Run tests as: python3 manage.py test
 
 To start coding, open bot/main.py
 '''.strip()

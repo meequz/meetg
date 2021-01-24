@@ -8,6 +8,11 @@ from meetg.loging import get_logger
 logger = get_logger()
 
 
+def get_model_classes():
+    model_classes = [getattr(settings, k) for k in dir(settings) if k.endswith('_model_class')]
+    return model_classes
+
+
 class AbstractStorage:
     """Any other storage must be a subclass of this class"""
 
@@ -87,120 +92,60 @@ class MongoStorage(AbstractStorage):
 
 
 class BaseDefaultModel:
-    settings_table_name = None
     tg_id_field = None
 
     def __init__(self, test=False):
-        if test:
-            db_name = settings.db_name_test
-        else:
-            db_name = settings.db_name
-
-        table_name = getattr(settings, self.settings_table_name)
+        db_name = settings.db_name_test if test else settings.db_name
         Storage = import_string(settings.storage_class)
         self._storage = Storage(
-            db_name=db_name, table_name=table_name, host=settings.db_host, port=settings.db_port,
+            db_name=db_name, table_name=self.table_name,
+            host=settings.db_host, port=settings.db_port,
         )
 
+    @property
+    def name_lower(self):
+        return self.name.lower()
+
+    @property
+    def table_name(self):
+        return f'{self.name_lower}_table'
+
     def _validate(self, data):
-        validated_data = {field: data[field] for field in data if field in self.save_fields}
-        return validated_data
+        validated = {field: data[field] for field in data if field in self.save_fields}
+        return validated
 
     def drop(self):
-        return self._storage.drop()
+        result = self._storage.drop()
+        return result
 
-    def create(self, obj_id, data):
+    def create(self, data: dict):
         data = self._validate(data)
-        data[self.db_id_field] = obj_id
-        result = self._storage.create(data)
-        logger.info('%s %s added to DB', self.name, obj_id)
-        return result
-
-    def create_from_obj(self, obj):
-        obj_id = getattr(obj, self.tg_id_field)
-        result = self.create(obj_id, obj.to_dict())
-        return result
-
-    def update(self, obj_id, data):
-        data = self._validate(data)
-        result = self._storage.update_one({self.db_id_field: obj_id}, data)
-        logger.info('%s %s updated in DB', self.name, obj_id)
-        return result
-
-    def update_from_obj(self, obj):
-        obj_id = getattr(obj, self.tg_id_field)
-        result = self.update(obj_id, obj.to_dict())
-        return result
+        if data:
+            result = self._storage.create(data)
+            if self.tg_id_field:
+                logger.info('Storage: %s %s created', self.name, data[self.tg_id_field])
+            else:
+                logger.info('Storage: %s created', self.name)
+            return result
 
     def find(self, pattern=None):
-        return [obj for obj in self._storage.find(pattern)]
+        found = [obj for obj in self._storage.find(pattern)]
+        return found
 
-    def find_one(self, obj_id=None):
-        pattern = None
-        if obj_id:
-            pattern = {self.db_id_field: obj_id}
-        return self._storage.find_one(pattern)
+    def find_one(self, pattern=None):
+        found = self._storage.find_one(pattern)
+        return found
 
 
-class DefaultUserModel(BaseDefaultModel):
-    """
-    Model to save and read Users in database.
-    Note that field for user.id called user_id, not id.
-    Other fields have the same names as in PTB
-    """
-    name = 'User'
-    settings_table_name = 'user_table'
-    tg_id_field = 'id'
-    db_id_field = 'user_id'
+class DefaultUpdateModel(BaseDefaultModel):
+    name = 'Update'
+    tg_id_field = 'update_id'
     fields = (
         # required
-        'user_id', 'is_bot', 'first_name',
+        'update_id',
         # optional
-        'last_name', 'username', 'language_code', 'can_join_groups', 'can_read_all_group_messages',
-        'supports_inline_queries',
-        # if the user share it
-        'phone_number', 'lat', 'lon',
+        'message', 'edited_message', 'channel_post', 'edited_channel_post', 'inline_query',
+        'chosen_inline_result', 'callback_query', 'shipping_query', 'pre_checkout_query', 'poll',
+        'poll_answer',
     )
     save_fields = fields
-
-
-class DefaultChatModel(BaseDefaultModel):
-    """
-    Field for chat.id called chat_id, not id.
-    """
-    name = 'Chat'
-    settings_table_name = 'chat_table'
-    tg_id_field = 'id'
-    db_id_field = 'chat_id'
-    fields = (
-        # required
-        'chat_id', 'type',
-        # optional
-        'title', 'username', 'first_name', 'last_name', 'photo', 'bio', 'description',
-        'invite_link', 'pinned_message', 'permissions', 'slow_mode_delay', 'sticker_set_name',
-        'can_set_sticker_set', 'linked_chat_id', 'location',
-    )
-    save_fields = fields
-
-
-class DefaultMessageModel(BaseDefaultModel):
-    name = 'Message'
-    settings_table_name = 'message_table'
-    tg_id_field = 'message_id'
-    db_id_field = 'message_id'
-    fields = (
-        # required
-        'message_id', 'date', 'chat',
-        # optional
-        'from', 'sender_chat', 'forward_from', 'forward_from_chat', 'forward_from_message_id',
-        'forward_signature', 'forward_sender_name', 'forward_date', 'reply_to_message', 'via_bot',
-        'edit_date', 'media_group_id', 'author_signature', 'text', 'entities', 'animation',
-        'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'caption',
-        'caption_entities', 'contact', 'dice', 'game', 'poll', 'venue', 'location',
-        'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo',
-        'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created',
-        'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message',
-        'invoice', 'successful_payment', 'connected_website', 'passport_data',
-        'proximity_alert_triggered', 'reply_markup',
-    )
-    save_fields = 'message_id', 'date', 'chat', 'from'

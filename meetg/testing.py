@@ -1,27 +1,48 @@
-import datetime, logging, unittest
+import datetime, importlib, logging, unittest
 
 from telegram import Chat, Message, Update, User
 
 import settings
+from meetg import default_settings
+from meetg.loging import get_logger
+from meetg.storage import get_model_classes
 from meetg.utils import dict_to_obj, import_string, parse_entities
 
 
-class BotTestCase(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
+
+    def _reset_settings(self):
+        importlib.reload(settings)
 
     def _drop_db(self):
-        for model_class in settings.model_classes:
+        for model_class in get_model_classes():
             Model = import_string(model_class)
-            Model().drop()
+            Model(test=True).drop()
+
+    def _reinit_loggers(self):
+        import meetg.botting
+        import meetg.storage
+        logger = get_logger()
+        meetg.botting.logger = logger
+        meetg.storage.logger = logger
 
     def setUp(self):
         super().setUp()
+        self._reset_settings()
         settings.log_level = logging.WARNING
-        self.bot = create_mock_bot()
+        self._reinit_loggers()
         self._drop_db()
 
     def tearDown(self):
         super().tearDown()
         self._drop_db()
+
+
+class BotTestCase(BaseTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.bot = create_mock_bot()
 
 
 class UpdaterBotMock:
@@ -71,7 +92,7 @@ def create_message_obj(
         user_first_name='Michael', user_last_name=None, chat_title=None,
     ):
     """
-    A helper to create fake update objects for testing purposes.
+    A helper to create fake message objects for testing purposes.
     Generate a private message by default
     """
     date = datetime.datetime.now()
