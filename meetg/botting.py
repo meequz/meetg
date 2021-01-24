@@ -2,7 +2,7 @@ import datetime, time
 
 import telegram
 import pytz
-from telegram.ext import Updater
+from telegram.ext import Handler, Updater
 
 import settings
 from meetg.loging import get_logger
@@ -34,7 +34,8 @@ class BaseBot:
         self._username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
-        self._handlers = self.set_handlers()
+        initial_handler = InitialHandler(self.update_model)
+        self._handlers = (initial_handler,) + self.set_handlers()
         if not self._is_mock:
             for handler in self._handlers:
                 self.updater.dispatcher.add_handler(handler)
@@ -91,23 +92,18 @@ class BaseBot:
         reports = '\n- '.join([
             self.update_model.get_count_report(),
         ])
-        body = f'@{self._username} for the last 24 hours:\n- {reports}'
-        self.broadcast(settings.stats_to, body)
+        text = f'@{self._username} for the last 24 hours:\n- {reports}'
+        self.broadcast(settings.stats_to, text)
 
     def run(self):
         self.updater.start_polling()
         logger.info('%s started', self._username)
         self.updater.idle()
 
-    def _save(self, update_obj):
-        self.update_model.create(update_obj.to_dict())
-
-    def proceed(self, update_obj, *args):
+    def extract(self, update_obj, *args):
         """
-        Extract data from update_obj according to args,
-        save required data in database, log new message
+        Extract data from update_obj according to args
         """
-        self._save(update_obj)
         update_dict = update_obj.to_dict()
         extracted = [extract_by_dotted_path(update_dict, path) for path in args]
         if len(extracted) == 1:
@@ -192,24 +188,24 @@ class BaseBot:
         logger.debug('Success' if success else 'Fail')
         return success, resp
 
-    def broadcast(self, chat_ids, body, html=False):
+    def broadcast(self, chat_ids, text, html=False):
         for chat_id in chat_ids:
-            self.send_msg(chat_id, body, html=html)
-        logger.info('Broadcasted: %s', repr(body[:79]))
+            self.send_message(chat_id, text, html=html)
+        logger.info('Broadcasted: %s', repr(text[:79]))
 
-    def send_msg(self, chat_id, body, msg_id=None, markup=None, html=None, preview=False):
+    def send_message(self, chat_id, text, msg_id=None, markup=None, html=None, preview=False):
         parse_mode = telegram.ParseMode.HTML if html else None
         success, resp = self.call_bot_api(
             'send_message',
-            chat_id=chat_id, text=body, reply_to_message_id=msg_id, reply_markup=markup,
+            chat_id=chat_id, text=text, reply_to_message_id=msg_id, reply_markup=markup,
             parse_mode=parse_mode, disable_web_page_preview=not preview,
         )
         return success, resp
 
-    def edit_msg_text(self, chat_id, body, msg_id, preview=False):
+    def edit_msg_text(self, chat_id, text, msg_id, preview=False):
         success, resp = self.call_bot_api(
             'edit_message_text',
-            text=body, chat_id=chat_id, message_id=msg_id, disable_web_page_preview=not preview,
+            text=text, chat_id=chat_id, message_id=msg_id, disable_web_page_preview=not preview,
         )
         return success, resp
 
@@ -219,3 +215,17 @@ class BaseBot:
             chat_id=chat_id, message_id=msg_id,
         )
         return success, resp
+
+
+class InitialHandler(Handler):
+    """
+    Fake handler which handles no updates,
+    but performs actions on every update,
+    if they are required, e.g. saving in database
+    """
+    def __init__(self, update_model, *args):
+        super().__init__(lambda: None)
+        self.update_model = update_model
+
+    def check_update(self, update_obj):
+        self.update_model.create(update_obj.to_dict())

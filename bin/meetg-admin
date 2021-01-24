@@ -19,14 +19,14 @@ class {name_cc}Bot(BaseBot):
         return handlers
 
     def reply_start(self, update_obj, context):
-        chat_id = self.proceed(update_obj, 'message.chat.id')
+        chat_id = self.extract(update_obj, 'message.chat.id')
         answer = 'Hello, world! Here is a reply to /start command'
-        self.send_msg(chat_id, answer)
+        self.send_message(chat_id, answer)
 
     def reply_any(self, update_obj, context):
-        chat_id = self.proceed(update_obj, 'message.chat.id')
+        chat_id = self.extract(update_obj, 'message.chat.id')
         answer = 'And here is a reply to any message'
-        self.send_msg(chat_id, answer)
+        self.send_message(chat_id, answer)
 '''
 
 MANAGE_PY = '''
