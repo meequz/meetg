@@ -149,15 +149,19 @@ class BaseDefaultModel:
         counted = self._storage.count(pattern)
         return counted
 
-    def get_count_report(self):
+    def _get_created_at_last_day_pattern(self):
         pattern = {
             'meetg_created_at': {
                 '$lt': time.time(),
                 '$gte': get_unixtime_before_now(24),
             },
         }
-        updates_received = self.count(pattern)
-        return f'received {updates_received} update objects'
+        return pattern
+
+    def get_day_report(self):
+        pattern = self._get_created_at_last_day_pattern()
+        received = self.count(pattern)
+        return f'- received {received} {self.name_lower}s\n'
 
 
 class DefaultUpdateModel(BaseDefaultModel):
@@ -170,5 +174,55 @@ class DefaultUpdateModel(BaseDefaultModel):
         'message', 'edited_message', 'channel_post', 'edited_channel_post', 'inline_query',
         'chosen_inline_result', 'callback_query', 'shipping_query', 'pre_checkout_query', 'poll',
         'poll_answer',
+    )
+    save_fields = fields
+
+
+class DefaultMessageModel(BaseDefaultModel):
+    name = 'Message'
+    tg_id_field = 'message_id'
+    fields = (
+        # required
+        'message_id', 'date', 'chat',
+        # optional
+        'from', 'sender_chat', 'forward_from', 'forward_from_chat', 'forward_from_message_id',
+        'forward_signature', 'forward_sender_name', 'forward_date', 'reply_to_message', 'via_bot',
+        'edit_date', 'media_group_id', 'author_signature', 'text', 'entities', 'animation',
+        'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'caption',
+        'caption_entities', 'contact', 'dice', 'game', 'poll', 'venue', 'location',
+        'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo',
+        'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created',
+        'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message',
+        'invoice', 'successful_payment', 'connected_website', 'passport_data',
+        'proximity_alert_triggered', 'reply_markup',
+    )
+    save_fields = fields
+
+
+class DefaultUserModel(BaseDefaultModel):
+    name = 'User'
+    tg_id_field = 'id'
+    fields = (
+        # required
+        'id', 'is_bot', 'first_name',
+        # optional
+        'last_name', 'username', 'language_code', 'can_join_groups', 'can_read_all_group_messages',
+        'supports_inline_queries',
+        # if the user share it
+        'phone_number', 'lat', 'lon',
+    )
+    save_fields = fields
+
+
+class DefaultChatModel(BaseDefaultModel):
+    name = 'Chat'
+    tg_id_field = 'id'
+    fields = (
+        # required
+        'id', 'type',
+        # optional
+        'title', 'username', 'first_name', 'last_name', 'photo', 'bio', 'description',
+        'invite_link', 'pinned_message', 'permissions', 'slow_mode_delay', 'sticker_set_name',
+        'can_set_sticker_set', 'linked_chat_id', 'location',
     )
     save_fields = fields

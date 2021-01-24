@@ -1,11 +1,14 @@
 import logging
 
+from parameterized import parameterized
 from telegram.ext import MessageHandler
 from telegram.ext import Filters
 
 import settings
 from meetg.botting import BaseBot
-from meetg.storage import DefaultUpdateModel
+from meetg.storage import (
+    DefaultChatModel, DefaultMessageModel, DefaultUpdateModel, DefaultUserModel
+)
 from meetg.tests.base import MeetgBaseTestCase
 
 
@@ -32,35 +35,66 @@ class NoSaveUpdateModel(DefaultUpdateModel):
     save_fields = ()
 
 
-class SaveUpdateTest(MeetgBaseTestCase):
+class NoSaveMessageModel(DefaultMessageModel):
+    """When use such a model, no objects are saved in storage"""
+    save_fields = ()
 
-    def test_save_update(self):
-        """Ensure the bot saves update object in storage"""
+
+class NoSaveUserModel(DefaultUserModel):
+    """When use such a model, no objects are saved in storage"""
+    save_fields = ()
+
+
+class NoSaveChatModel(DefaultChatModel):
+    """When use such a model, no objects are saved in storage"""
+    save_fields = ()
+
+
+class SaveObjTest(MeetgBaseTestCase):
+    model_names = (
+        ['Update'], ['Message'], ['User'], ['Chat'],
+    )
+
+    @parameterized.expand(model_names)
+    def test_save(self, model_name):
+        """Ensure the bot saves an object in storage"""
         bot = AnyHandlerBot(mock=True)
-        assert not bot.update_model.find()
+        model = getattr(bot, f'{model_name.lower()}_model')
+        assert not model.find()
         bot.test_send('Spam')
-        assert bot.update_model.find()
+        assert model.find()
 
-    def test_no_save_update(self):
-        """Ensure the bot doesn't save update object in storage"""
-        settings.update_model_class = 'meetg.tests.test_basebot.NoSaveUpdateModel'
+    @parameterized.expand(model_names)
+    def test_no_save(self, model_name):
+        """
+        Ensure the bot doesn't save an object in storage
+        """
+        # apply model class with save_fields = ()
+        no_save_model_class = f'meetg.tests.test_basebot.NoSave{model_name}Model'
+        setattr(settings, f'{model_name.lower()}_model_class', no_save_model_class)
+
         bot = AnyHandlerBot(mock=True)
-        assert not bot.update_model.find()
+        model = getattr(bot, f'{model_name.lower()}_model')
+        assert not model.find()
         bot.test_send('Spam')
-        assert not bot.update_model.find()
+        assert not model.find()
 
-    def test_save_update_with_created_at(self):
-        """Ensure the bot adds own timestamp when saves update object"""
+    @parameterized.expand(model_names)
+    def test_save_with_created_at(self, model_name):
+        """Ensure the bot adds own timestamp when saves an object"""
         bot = AnyHandlerBot(mock=True)
+        model = getattr(bot, f'{model_name.lower()}_model')
         bot.test_send('Spam')
-        assert 'meetg_created_at' in bot.update_model.find_one()
+        assert 'meetg_created_at' in model.find_one()
 
-    def test_save_update_no_handlers(self):
-        """Ensure the bot without any handler still saves update object"""
+    @parameterized.expand(model_names)
+    def test_save_no_handlers(self, model_name):
+        """Ensure the bot without any handler still saves an object"""
         bot = NoHandlerBot(mock=True)
-        assert not bot.update_model.find()
+        model = getattr(bot, f'{model_name.lower()}_model')
+        assert not model.find()
         bot.test_send('Spam')
-        assert bot.update_model.find()
+        assert model.find()
 
 
 class StatTest(MeetgBaseTestCase):

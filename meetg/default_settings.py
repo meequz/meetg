@@ -11,6 +11,9 @@ db_port = 27017
 
 storage_class = 'meetg.storage.MongoStorage'
 update_model_class = 'meetg.storage.DefaultUpdateModel'
+message_model_class = 'meetg.storage.DefaultMessageModel'
+user_model_class = 'meetg.storage.DefaultUserModel'
+chat_model_class = 'meetg.storage.DefaultChatModel'
 
 bot_class = 'bot.MyBot'
 

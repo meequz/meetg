@@ -16,9 +16,6 @@ logger = get_logger()
 
 class BaseBot:
     """Common Telegram bot logic"""
-    save_users = True
-    save_chats = True
-    save_messages = False
 
     def __init__(self, mock=False):
         self._is_mock = mock
@@ -34,7 +31,9 @@ class BaseBot:
         self._username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
-        initial_handler = InitialHandler(self.update_model)
+        initial_handler = InitialHandler(
+            self.update_model, self.message_model, self.user_model, self.chat_model,
+        )
         self._handlers = (initial_handler,) + self.set_handlers()
         if not self._is_mock:
             for handler in self._handlers:
@@ -57,9 +56,11 @@ class BaseBot:
 
     def _init_models(self, test=False):
         """Read model classes from settings, import and add them to self"""
+        self._models = []
         for model_class in get_model_classes():
             model = import_string(model_class)(test=test)
             setattr(self, f'{model.name_lower}_model', model)
+            self._models.append(model)
 
     def _mock_process_update(self, update_obj):
         """Simulation of telegram.ext.dispatcher.Dispatcher.process_update()"""
@@ -86,14 +87,10 @@ class BaseBot:
 
     def job_stats(self, context):
         """Report bots stats"""
-        if not settings.stats_to:
-            return
-
-        reports = '\n- '.join([
-            self.update_model.get_count_report(),
-        ])
-        text = f'@{self._username} for the last 24 hours:\n- {reports}'
-        self.broadcast(settings.stats_to, text)
+        if settings.stats_to:
+            reports = ''.join([m.get_day_report() for m in self._models])
+            text = f'@{self._username} for the last 24 hours:\n- {reports}'
+            self.broadcast(settings.stats_to, text)
 
     def run(self):
         self.updater.start_polling()
@@ -223,9 +220,38 @@ class InitialHandler(Handler):
     but performs actions on every update,
     if they are required, e.g. saving in database
     """
-    def __init__(self, update_model, *args):
+    def __init__(self, update_model, message_model, user_model, chat_model, *args):
         super().__init__(lambda: None)
         self.update_model = update_model
+        self.message_model = message_model
+        self.user_model = user_model
+        self.chat_model = chat_model
 
     def check_update(self, update_obj):
-        self.update_model.create(update_obj.to_dict())
+        self.save(update_obj)
+
+    def save(self, update_obj):
+        """Save all the fields specified in enabled models"""
+        self.save_update(update_obj)
+        self.save_message(update_obj)
+        self.save_user(update_obj)
+        self.save_chat(update_obj)
+
+    def save_update(self, update_obj):
+        data = update_obj.to_dict()
+        self.update_model.create(data)
+
+    def save_message(self, update_obj):
+        if update_obj.effective_message:
+            data = update_obj.effective_message.to_dict()
+        self.message_model.create(data)
+
+    def save_user(self, update_obj):
+        if update_obj.effective_user:
+            data = update_obj.effective_user.to_dict()
+        self.user_model.create(data)
+
+    def save_chat(self, update_obj):
+        if update_obj.effective_chat:
+            data = update_obj.effective_chat.to_dict()
+        self.chat_model.create(data)
