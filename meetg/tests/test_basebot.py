@@ -56,3 +56,20 @@ class StatTest(MeetgBaseTestCase):
         bot = TestBot(mock=True)
         bot.job_stats(None)
         assert bot.api_text_sent.startswith('@mock_username for the')
+
+
+class AnswerTest(MeetgBaseTestCase):
+
+    def test_text_answer_to_text(self):
+        bot = TestBot(mock=True)
+        bot.test_send('Spam')
+        assert bot.api_method_called == 'send_message'
+        assert bot.api_args_used['chat_id'] == 1
+        assert bot.api_args_used['text'] == 'reply to any msg'
+
+    def test_text_answer(self):
+        bot = TestBot(mock=True)
+        bot.send_msg(1, 'bot sends this')
+        assert bot.api_method_called == 'send_message'
+        assert bot.api_args_used['chat_id'] == 1
+        assert bot.api_args_used['text'] == 'bot sends this'

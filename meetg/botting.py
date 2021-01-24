@@ -109,11 +109,9 @@ class BaseBot:
         """
         self._save(update_obj)
         update_dict = update_obj.to_dict()
-
-        extracted = []
-        for dotted_path in args:
-            value = extract_by_dotted_path(update_dict, dotted_path)
-            extracted.append(value)
+        extracted = [extract_by_dotted_path(update_dict, path) for path in args]
+        if len(extracted) == 1:
+            extracted = extracted[0]
         return extracted
 
     def _log_api_call(self, method_name, kwargs):
