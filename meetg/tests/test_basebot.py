@@ -10,6 +10,7 @@ from meetg.storage import (
     DefaultChatModel, DefaultMessageModel, DefaultUpdateModel, DefaultUserModel
 )
 from meetg.tests.base import MeetgBaseTestCase
+from meetg.utils import get_update_type
 
 
 class AnyHandlerBot(BaseBot):
@@ -21,8 +22,9 @@ class AnyHandlerBot(BaseBot):
         return handlers
 
     def reply_any(self, update_obj, context):
-        chat_id = self.extract(update_obj, 'message.chat.id')
-        self.send_message(chat_id, 'reply to any msg')
+        chat_id = update_obj.effective_chat.id
+        update_type = get_update_type(update_obj)
+        self.send_message(chat_id, f'Update received: {update_type}')
 
 
 class NoHandlerBot(BaseBot):
@@ -113,7 +115,7 @@ class AnswerTest(MeetgBaseTestCase):
         bot.test_send('Spam')
         assert bot.api_method_called == 'send_message'
         assert bot.api_args_used['chat_id'] == 1
-        assert bot.api_args_used['text'] == 'reply to any msg'
+        assert bot.api_args_used['text'] == 'Update received: message'
 
     def test_text_answer(self):
         bot = AnyHandlerBot(mock=True)

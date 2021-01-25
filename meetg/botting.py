@@ -8,7 +8,7 @@ import settings
 from meetg.loging import get_logger
 from meetg.storage import get_model_classes
 from meetg.testing import UpdaterMock, create_update_obj
-from meetg.utils import extract_by_dotted_path, import_string
+from meetg.utils import import_string
 
 
 logger = get_logger()
@@ -94,16 +94,6 @@ class BaseBot:
         self.updater.start_polling()
         logger.info('%s started', self._username)
         self.updater.idle()
-
-    def extract(self, update_obj, *args):
-        """
-        Extract data from update_obj according to args
-        """
-        update_dict = update_obj.to_dict()
-        extracted = [extract_by_dotted_path(update_dict, path) for path in args]
-        if len(extracted) == 1:
-            extracted = extracted[0]
-        return extracted
 
     def _log_api_call(self, method_name, kwargs):
         chat_id = kwargs.get('chat_id')

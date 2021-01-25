@@ -69,8 +69,7 @@ def get_unixtime_before_now(hours: int):
     return before
 
 
-def extract_by_dotted_path(dikt, path):
-    value = dikt
-    for part in path.split('.'):
-        value = value.get(part, {})
-    return value or None
+def get_update_type(update_obj):
+    for key in update_obj.to_dict():
+        if key != 'update_id':
+            return key
