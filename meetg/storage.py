@@ -98,6 +98,7 @@ class MongoStorage(AbstractStorage):
 
 class BaseDefaultModel:
     tg_id_field = None
+    related_to_update = False
 
     def __init__(self, test=False):
         db_name = settings.db_name_test if test else settings.db_name
@@ -116,7 +117,12 @@ class BaseDefaultModel:
         return f'{self.name_lower}_table'
 
     def _validate(self, data):
-        validated = {field: data[field] for field in data if field in self.save_fields}
+        validated = {}
+        for field in data:
+            if field in self.save_fields:
+                validated[field] = data[field]
+            else:
+                logger.warning('Field %s doesn\'t belong to model %s', field, self.name)
         return validated
 
     def drop(self):
@@ -149,7 +155,7 @@ class BaseDefaultModel:
         counted = self._storage.count(pattern)
         return counted
 
-    def _get_created_at_last_day_pattern(self):
+    def _get_created_for_last_day_pattern(self):
         pattern = {
             'meetg_created_at': {
                 '$lt': time.time(),
@@ -159,7 +165,7 @@ class BaseDefaultModel:
         return pattern
 
     def get_day_report(self):
-        pattern = self._get_created_at_last_day_pattern()
+        pattern = self._get_created_for_last_day_pattern()
         received = self.count(pattern)
         return f'- received {received} {self.name_lower}s\n'
 
@@ -167,6 +173,7 @@ class BaseDefaultModel:
 class DefaultUpdateModel(BaseDefaultModel):
     name = 'Update'
     tg_id_field = 'update_id'
+    related_to_update = True
     fields = (
         # required
         'update_id',
@@ -177,10 +184,15 @@ class DefaultUpdateModel(BaseDefaultModel):
     )
     save_fields = fields
 
+    def create_from_update_obj(self, update_obj):
+        data = update_obj.to_dict()
+        self.create(data)
+
 
 class DefaultMessageModel(BaseDefaultModel):
     name = 'Message'
     tg_id_field = 'message_id'
+    related_to_update = True
     fields = (
         # required
         'message_id', 'date', 'chat',
@@ -198,10 +210,16 @@ class DefaultMessageModel(BaseDefaultModel):
     )
     save_fields = fields
 
+    def create_from_update_obj(self, update_obj):
+        if update_obj.effective_message:
+            data = update_obj.effective_message.to_dict()
+            self.create(data)
+
 
 class DefaultUserModel(BaseDefaultModel):
     name = 'User'
     tg_id_field = 'id'
+    related_to_update = True
     fields = (
         # required
         'id', 'is_bot', 'first_name',
@@ -213,10 +231,16 @@ class DefaultUserModel(BaseDefaultModel):
     )
     save_fields = fields
 
+    def create_from_update_obj(self, update_obj):
+        if update_obj.effective_user:
+            data = update_obj.effective_user.to_dict()
+            self.create(data)
+
 
 class DefaultChatModel(BaseDefaultModel):
     name = 'Chat'
     tg_id_field = 'id'
+    related_to_update = True
     fields = (
         # required
         'id', 'type',
@@ -226,3 +250,8 @@ class DefaultChatModel(BaseDefaultModel):
         'can_set_sticker_set', 'linked_chat_id', 'location',
     )
     save_fields = fields
+
+    def create_from_update_obj(self, update_obj):
+        if update_obj.effective_chat:
+            data = update_obj.effective_chat.to_dict()
+            self.create(data)

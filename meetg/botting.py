@@ -31,10 +31,8 @@ class BaseBot:
         self._username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
-        initial_handler = InitialHandler(
-            self.update_model, self.message_model, self.user_model, self.chat_model,
-        )
-        self._handlers = (initial_handler,) + self.set_handlers()
+        save_handler = SaveOnUpdateHandler(self._models)
+        self._handlers = (save_handler,) + self.set_handlers()
         if not self._is_mock:
             for handler in self._handlers:
                 self.updater.dispatcher.add_handler(handler)
@@ -199,14 +197,14 @@ class BaseBot:
         )
         return success, resp
 
-    def edit_msg_text(self, chat_id, text, msg_id, preview=False):
+    def edit_message_text(self, chat_id, text, msg_id, preview=False):
         success, resp = self.call_bot_api(
             'edit_message_text',
             text=text, chat_id=chat_id, message_id=msg_id, disable_web_page_preview=not preview,
         )
         return success, resp
 
-    def delete_msg(self, chat_id, msg_id):
+    def delete_message(self, chat_id, msg_id):
         success, resp = self.call_bot_api(
             'delete_message',
             chat_id=chat_id, message_id=msg_id,
@@ -214,44 +212,24 @@ class BaseBot:
         return success, resp
 
 
-class InitialHandler(Handler):
+class SaveOnUpdateHandler(Handler):
     """
     Fake handler which handles no updates,
-    but performs actions on every update,
-    if they are required, e.g. saving in database
+    but saves info from each Update for update-related models
     """
-    def __init__(self, update_model, message_model, user_model, chat_model, *args):
+    def __init__(self, models):
         super().__init__(lambda: None)
-        self.update_model = update_model
-        self.message_model = message_model
-        self.user_model = user_model
-        self.chat_model = chat_model
+        # leave only enabled update-related models
+        self.models = []
+        for model in models:
+            if model.related_to_update and model.save_fields:
+                self.models.append(model)
 
     def check_update(self, update_obj):
+        """The method triggers by PTB on each received update"""
         self.save(update_obj)
 
     def save(self, update_obj):
         """Save all the fields specified in enabled models"""
-        self.save_update(update_obj)
-        self.save_message(update_obj)
-        self.save_user(update_obj)
-        self.save_chat(update_obj)
-
-    def save_update(self, update_obj):
-        data = update_obj.to_dict()
-        self.update_model.create(data)
-
-    def save_message(self, update_obj):
-        if update_obj.effective_message:
-            data = update_obj.effective_message.to_dict()
-        self.message_model.create(data)
-
-    def save_user(self, update_obj):
-        if update_obj.effective_user:
-            data = update_obj.effective_user.to_dict()
-        self.user_model.create(data)
-
-    def save_chat(self, update_obj):
-        if update_obj.effective_chat:
-            data = update_obj.effective_chat.to_dict()
-        self.chat_model.create(data)
+        for model in self.models:
+            model.create_from_update_obj(update_obj)
