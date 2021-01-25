@@ -226,8 +226,6 @@ class DefaultUserModel(BaseDefaultModel):
         # optional
         'last_name', 'username', 'language_code', 'can_join_groups', 'can_read_all_group_messages',
         'supports_inline_queries',
-        # if the user share it
-        'phone_number', 'lat', 'lon',
     )
     save_fields = fields
 
@@ -247,7 +245,7 @@ class DefaultChatModel(BaseDefaultModel):
         # optional
         'title', 'username', 'first_name', 'last_name', 'photo', 'bio', 'description',
         'invite_link', 'pinned_message', 'permissions', 'slow_mode_delay', 'sticker_set_name',
-        'can_set_sticker_set', 'linked_chat_id', 'location',
+        'can_set_sticker_set', 'linked_chat_id', 'location', 'all_members_are_administrators',
     )
     save_fields = fields
 
