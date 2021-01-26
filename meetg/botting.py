@@ -19,12 +19,12 @@ class BaseBot:
 
     def __init__(self, mock=False):
         self._is_mock = mock
-        self._init_tgbot()
+        self._init_updater()
         self._init_models(test=mock)
         self._init_handlers()
-        self.set_jobs()
+        self._init_jobs()
 
-    def _init_tgbot(self):
+    def _init_updater(self):
         updater_class = UpdaterMock if self._is_mock else Updater
         self.updater = updater_class(settings.tg_api_token, use_context=True)
         self._tgbot = self.updater.bot
@@ -32,25 +32,25 @@ class BaseBot:
 
     def _init_handlers(self):
         save_handler = SaveOnUpdateHandler(self._models)
-        self._handlers = (save_handler,) + self.set_handlers()
+        self._handlers = (save_handler,) + self.init_handlers()
         if not self._is_mock:
             for handler in self._handlers:
                 self.updater.dispatcher.add_handler(handler)
 
-    def set_handlers(self):
-        """
-        This method intended to be redefined in your bot class
-        """
+    def init_handlers(self):
+        """Intended to be redefined in your bot class"""
         logger.warning('No handlers found')
         return ()
 
-    def set_jobs(self):
-        """
-        Set default jobs to self.updater.job_queue.
-        May be redefined in a subclass, but don't forget to call super() then
-        """
+    def init_jobs(self):
+        """Intended to be redefined in your bot class"""
+        pass
+
+    def _init_jobs(self):
+        """Set default jobs to self.updater.job_queue before self.init_jobs()"""
         stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))  # 00:00 UTC
         self.updater.job_queue.run_daily(self.job_stats, stats_dt)
+        self.init_jobs()
 
     def _init_models(self, test=False):
         """Read model classes from settings, import and add them to self"""
@@ -114,13 +114,11 @@ class BaseBot:
         If the object of the class is a mock,
         then just remember the API method and the args going to be used
         """
-        self.api_method_called = method_name
-        self.api_args_used = method_args
-        if 'text' in method_args:
-            self.api_text_sent = method_args.get('text', '')
+        self.last_api_method = method_name
+        self.last_api_args = method_args
         return None, None
 
-    def call_bot_api(self, method_name: str, **kwargs):
+    def _call_bot_api(self, method_name: str, **kwargs):
         """
         Retries and handling network and load issues
         """
@@ -180,7 +178,7 @@ class BaseBot:
 
     def send_message(self, chat_id, text, msg_id=None, markup=None, html=None, preview=False):
         parse_mode = telegram.ParseMode.HTML if html else None
-        success, resp = self.call_bot_api(
+        success, resp = self._call_bot_api(
             'send_message',
             chat_id=chat_id, text=text, reply_to_message_id=msg_id, reply_markup=markup,
             parse_mode=parse_mode, disable_web_page_preview=not preview,
@@ -188,14 +186,14 @@ class BaseBot:
         return success, resp
 
     def edit_message_text(self, chat_id, text, msg_id, preview=False):
-        success, resp = self.call_bot_api(
+        success, resp = self._call_bot_api(
             'edit_message_text',
             text=text, chat_id=chat_id, message_id=msg_id, disable_web_page_preview=not preview,
         )
         return success, resp
 
     def delete_message(self, chat_id, msg_id):
-        success, resp = self.call_bot_api(
+        success, resp = self._call_bot_api(
             'delete_message',
             chat_id=chat_id, message_id=msg_id,
         )

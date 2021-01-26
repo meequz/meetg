@@ -11,7 +11,7 @@ from telegram.ext import Filters, Updater
 class {name_cc}Bot(BaseBot):
     """Example of your bot"""
 
-    def set_handlers(self):
+    def init_handlers(self):
         handlers = (
             CommandHandler('start', self.reply_start, Filters.chat_type.private),
             MessageHandler(Filters.chat_type.private, self.reply_private),
@@ -74,15 +74,18 @@ class ReplyTest(BotTestCase):
 
     def test_reply_start(self):
         self.bot.test_send('/start')
-        assert self.bot.api_text_sent == 'Hello, world! Here is a reply to /start command'
+        assert bot.last_api_method == 'send_message'
+        assert self.bot.last_api_args['text'] == 'Hello, world! Here is a reply to /start command'
 
     def test_reply_private(self):
         self.bot.test_send('p uyui')
-        assert self.bot.api_text_sent == 'Message received in private: p uyui'
+        assert bot.last_api_method == 'send_message'
+        assert self.bot.last_api_args['text'] == 'Message received in private: p uyui'
 
     def test_reply_group(self):
         self.bot.test_send('g uyui', chat_type='group')
-        assert self.bot.api_text_sent == 'Message received in group: g uyui'
+        assert bot.last_api_method == 'send_message'
+        assert self.bot.last_api_args['text'] == 'Message received in group: g uyui'
 '''
 
 PROJECT_CREATED = '''

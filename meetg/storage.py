@@ -186,7 +186,7 @@ class DefaultUpdateModel(BaseDefaultModel):
 
     def create_from_update_obj(self, update_obj):
         data = update_obj.to_dict()
-        self.create(data)
+        return self.create(data)
 
 
 class DefaultMessageModel(BaseDefaultModel):
@@ -213,7 +213,7 @@ class DefaultMessageModel(BaseDefaultModel):
     def create_from_update_obj(self, update_obj):
         if update_obj.effective_message:
             data = update_obj.effective_message.to_dict()
-            self.create(data)
+            return self.create(data)
 
 
 class DefaultUserModel(BaseDefaultModel):
@@ -232,7 +232,7 @@ class DefaultUserModel(BaseDefaultModel):
     def create_from_update_obj(self, update_obj):
         if update_obj.effective_user:
             data = update_obj.effective_user.to_dict()
-            self.create(data)
+            return self.create(data)
 
 
 class DefaultChatModel(BaseDefaultModel):
@@ -252,4 +252,4 @@ class DefaultChatModel(BaseDefaultModel):
     def create_from_update_obj(self, update_obj):
         if update_obj.effective_chat:
             data = update_obj.effective_chat.to_dict()
-            self.create(data)
+            return self.create(data)
