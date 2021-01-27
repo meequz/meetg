@@ -5,6 +5,7 @@ import pytz
 from telegram.ext import Handler, Updater
 
 import settings
+from meetg.api_methods import api_method_classes
 from meetg.loging import get_logger
 from meetg.storage import get_model_classes
 from meetg.testing import UpdaterMock, create_update_obj
@@ -95,115 +96,28 @@ class BaseBot:
         logger.info('%s started', self._username)
         self.updater.idle()
 
-    def _log_api_call(self, method_name, kwargs):
-        chat_id = kwargs.get('chat_id')
-        message_id = kwargs.get('message_id')
-        text = repr(kwargs.get('text', ''))
-
-        if method_name == 'send_message':
-            logger.info('Send message to chat %s, text length %s', chat_id, len(text))
-        elif method_name == 'edit_message_text':
-            logger.info('Edit message %s in chat %s', message_id, chat_id)
-        elif method_name == 'delete_message':
-            logger.info('Delete message %s in chat %s', message_id, chat_id)
-        else:
-            raise NotImplementedError
-
-    def _mock_remember(self, method_name, method_args):
-        """
-        If the object of the class is a mock,
-        then just remember the API method and the args going to be used
-        """
-        self.last_api_method = method_name
-        self.last_api_args = method_args
-        return None, None
-
-    def _call_bot_api(self, method_name: str, **kwargs):
-        """
-        Retries and handling network and load issues
-        """
-        if self._is_mock:
-            return self._mock_remember(method_name, kwargs)
-
-        to_attempt = 5
-        success = False
-        self._log_api_call(method_name, kwargs)
-        method = getattr(self._tgbot, method_name)
-        chat_id = kwargs.pop('chat_id', None)
-
-        while to_attempt > 0:
-            try:
-                resp = method(chat_id=chat_id, **kwargs)
-                success = True
-                to_attempt = 0
-            except telegram.error.NetworkError as exc:
-                prefix = 'Network error: '
-                if 'are exactly the same as' in exc.message:
-                    logger.error(prefix + '"%s". It\'s ok, nothing to do here', exc.message)
-                    success = True
-                    to_attempt = 0
-                elif "Can't parse entities" in exc.message:
-                    logger.error(prefix + '"%s". Retrying is pointless', exc.message)
-                    to_attempt = 0
-                else:
-                    logger.error(prefix + '"%s". Waiting 2 seconds then retry', exc.message)
-                    to_attempt -= 1
-                    time.sleep(2)
-                resp = exc.message
-            except telegram.error.TimedOut as exc:
-                logger.error('Timed Out. Retrying')
-                resp = exc.message
-                to_attempt -= 1
-            except telegram.error.RetryAfter as exc:
-                logger.error('It is asked to retry after %s seconds. Doing', exc.retry_after)
-                resp = exc.message
-                to_attempt -= 2
-                time.sleep(exc.retry_after + 1)
-            except telegram.error.ChatMigrated as exc:
-                logger.error('ChatMigrated error: "%s". Retrying with new chat id', exc)
-                resp = exc.message
-                chat_id = exc.new_chat_id
-                to_attempt -= 1
-            except (telegram.error.Unauthorized, telegram.error.BadRequest) as exc:
-                logger.error('Error: "%s". Retrying', exc)
-                resp = exc.message
-                to_attempt -= 2
-        logger.debug('Success' if success else 'Fail')
-        return success, resp
-
     def broadcast(self, chat_ids, text, html=False):
         for chat_id in chat_ids:
             self.send_message(chat_id, text, html=html)
         logger.info('Broadcasted: %s', repr(text[:79]))
 
-    def send_message(self, chat_id, text, msg_id=None, markup=None, html=None, preview=False):
-        parse_mode = telegram.ParseMode.HTML if html else None
-        success, resp = self._call_bot_api(
-            'send_message',
-            chat_id=chat_id, text=text, reply_to_message_id=msg_id, reply_markup=markup,
-            parse_mode=parse_mode, disable_web_page_preview=not preview,
-        )
-        return success, resp
-
-    def edit_message_text(self, chat_id, text, msg_id, preview=False):
-        success, resp = self._call_bot_api(
-            'edit_message_text',
-            text=text, chat_id=chat_id, message_id=msg_id, disable_web_page_preview=not preview,
-        )
-        return success, resp
-
-    def delete_message(self, chat_id, msg_id):
-        success, resp = self._call_bot_api(
-            'delete_message',
-            chat_id=chat_id, message_id=msg_id,
-        )
-        return success, resp
+    def __getattr__(self, name):
+        """
+        Find API method class by the name, create it,
+        and return its easy_call() method
+        """
+        method_class = api_method_classes.get(name)
+        if method_class:
+            method = method_class(self._tgbot, self._is_mock)
+            self.last_method = method
+            return method.easy_call
 
 
 class SaveOnUpdateHandler(Handler):
     """
     Fake handler which handles no updates,
-    but saves info from each Update for update-related models
+    but saves info from each Update for update-related models,
+    if they are enabled
     """
     def __init__(self, models):
         super().__init__(lambda: None)

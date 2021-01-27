@@ -51,8 +51,11 @@ class JobQueueMock:
         pass
 
 
-class BotMock:
+class TgBotMock:
     username = 'mock_username'
+
+    def __getattr__(self, name):
+        pass
 
     def get_me(self):
         me = dict_to_obj('Me', {'username': self.username})
@@ -63,7 +66,7 @@ class UpdaterMock:
 
     def __init__(self, *args, **kwargs):
         self.job_queue = JobQueueMock()
-        self.bot = BotMock()
+        self.bot = TgBotMock()
 
 
 def create_mock_bot():

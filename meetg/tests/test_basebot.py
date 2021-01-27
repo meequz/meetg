@@ -105,7 +105,7 @@ class StatTest(MeetgBaseTestCase):
         settings.stats_to = (1, )
         bot = AnyHandlerBot(mock=True)
         bot.job_stats(None)
-        assert bot.last_api_args['text'].startswith('@mock_username for the')
+        assert bot.last_method.args['text'].startswith('@mock_username for the')
 
 
 class AnswerTest(MeetgBaseTestCase):
@@ -113,13 +113,13 @@ class AnswerTest(MeetgBaseTestCase):
     def test_text_answer_to_text(self):
         bot = AnyHandlerBot(mock=True)
         bot.test_send('Spam')
-        assert bot.last_api_method == 'send_message'
-        assert bot.last_api_args['chat_id'] == 1
-        assert bot.last_api_args['text'] == 'Update received: message'
+        assert bot.last_method.name == 'send_message'
+        assert bot.last_method.args['chat_id'] == 1
+        assert bot.last_method.args['text'] == 'Update received: message'
 
     def test_text_answer(self):
         bot = AnyHandlerBot(mock=True)
         bot.send_message(1, 'bot sends this')
-        assert bot.last_api_method == 'send_message'
-        assert bot.last_api_args['chat_id'] == 1
-        assert bot.last_api_args['text'] == 'bot sends this'
+        assert bot.last_method.name == 'send_message'
+        assert bot.last_method.args['chat_id'] == 1
+        assert bot.last_method.args['text'] == 'bot sends this'
