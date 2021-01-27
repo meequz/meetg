@@ -104,7 +104,7 @@ class StatTest(MeetgBaseTestCase):
     def test_stats_msg_broadcasted(self):
         settings.stats_to = (1, )
         bot = AnyHandlerBot(mock=True)
-        bot.job_stats(None)
+        bot.job_report_stats(None)
         assert bot.last_method.args['text'].startswith('@mock_username for the')
 
 

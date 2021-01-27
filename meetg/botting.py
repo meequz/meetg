@@ -29,7 +29,7 @@ class BaseBot:
         updater_class = UpdaterMock if self._is_mock else Updater
         self.updater = updater_class(settings.tg_api_token, use_context=True)
         self._tgbot = self.updater.bot
-        self._username = self.updater.bot.get_me().username
+        self.username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
         save_handler = SaveOnUpdateHandler(self._models)
@@ -50,7 +50,7 @@ class BaseBot:
     def _init_jobs(self):
         """Set default jobs to self.updater.job_queue before self.init_jobs()"""
         stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))  # 00:00 UTC
-        self.updater.job_queue.run_daily(self.job_stats, stats_dt)
+        self.updater.job_queue.run_daily(self.job_report_stats, stats_dt)
         self.init_jobs()
 
     def _init_models(self, test=False):
@@ -84,22 +84,25 @@ class BaseBot:
         )
         return self._mock_process_update(update_obj)
 
-    def job_stats(self, context):
-        """Report bots stats"""
+    def job_report_stats(self, context):
+        """Report bots stats daily"""
         if settings.stats_to:
             reports = ''.join([m.get_day_report() for m in self._models])
-            text = f'@{self._username} for the last 24 hours:\n- {reports}'
-            self.broadcast(settings.stats_to, text)
+            text = f'@{self.username} for the last 24 hours:\n- {reports}'
+            self.send_messages(settings.stats_to, text)
 
     def run(self):
         self.updater.start_polling()
-        logger.info('%s started', self._username)
+        logger.info('%s started', self.username)
         self.updater.idle()
 
-    def broadcast(self, chat_ids, text, html=False):
+    def send_messages(self, chat_ids, text, reply_to=None, markup=None, html=None, preview=False):
+        """Shortcut to replace multiple send_message calls"""
         for chat_id in chat_ids:
-            self.send_message(chat_id, text, html=html)
-        logger.info('Broadcasted: %s', repr(text[:79]))
+            self.send_message(
+                chat_id, text, reply_to=reply_to, markup=markup, html=html, preview=preview,
+            )
+        logger.info('Broadcasted message: %s', repr(text[:79]))
 
     def __getattr__(self, name):
         """
