@@ -8,7 +8,10 @@ import settings
 from meetg.api_methods import api_method_classes
 from meetg.loging import get_logger
 from meetg.storage import get_model_classes
-from meetg.testing import UpdaterMock, create_update_obj
+from meetg.testing import UpdaterMock
+from meetg.update_factories import (
+    MessageUpdateFactory
+)
 from meetg.utils import import_string
 
 
@@ -68,22 +71,6 @@ class BaseBot:
             if check not in (None, False):
                 return handler.callback(update_obj, None)
 
-    def test_send(
-            self, message_text: str, user_first_name=None, chat_title=None, chat_type='private',
-        ):
-        """
-        Method to use in auto tests.
-        Simulate sending messages to the bot
-        """
-        kwargs = {}
-        if user_first_name is not None:
-            kwargs['user_first_name'] = user_first_name
-        update_obj = create_update_obj(
-            message_text=message_text, chat_type=chat_type, chat_title=chat_title, bot=self._tgbot,
-            **kwargs,
-        )
-        return self._mock_process_update(update_obj)
-
     def job_report_stats(self, context):
         """Report bots stats daily"""
         if settings.stats_to:
@@ -97,17 +84,26 @@ class BaseBot:
         self.updater.idle()
 
     def send_messages(self, chat_ids, text, reply_to=None, markup=None, html=None, preview=False):
-        """Shortcut to replace multiple send_message calls"""
+        """Shortcut to replace multiple send_message API calls"""
         for chat_id in chat_ids:
             self.send_message(
                 chat_id, text, reply_to=reply_to, markup=markup, html=html, preview=preview,
             )
         logger.info('Broadcasted message: %s', repr(text[:79]))
 
+    def receive_message(self, text, **kwargs):
+        """
+        For using in tests.
+        Simulates receiving Update with 'message' by the bot
+        """
+        factory = MessageUpdateFactory(self)
+        update_obj = factory.create(text, **kwargs)
+        return self._mock_process_update(update_obj)
+
     def __getattr__(self, name):
         """
         Find API method class by the name, create it,
-        and return its easy_call() method
+        and return its easy_call method
         """
         method_class = api_method_classes.get(name)
         if method_class:

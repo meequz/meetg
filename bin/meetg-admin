@@ -73,17 +73,17 @@ from meetg.testing import BotTestCase
 class ReplyTest(BotTestCase):
 
     def test_reply_start(self):
-        self.bot.test_send('/start')
+        self.bot.receive_message('/start')
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_method.args['text'] == 'Hello, world! It is a reply to /start command'
 
     def test_reply_private(self):
-        self.bot.test_send('p uyui')
+        self.bot.receive_message('p uyui')
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_method.args['text'] == 'Message received in private: p uyui'
 
     def test_reply_group(self):
-        self.bot.test_send('g uyui', chat_type='group')
+        self.bot.receive_message('g uyui', chat__type='group')
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_method.args['text'] == 'Message received in group: g uyui'
 '''

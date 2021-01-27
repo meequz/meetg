@@ -63,7 +63,7 @@ class SaveObjTest(MeetgBaseTestCase):
         bot = AnyHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
         assert not model.find()
-        bot.test_send('Spam')
+        bot.receive_message('Spam')
         assert model.find()
 
     @parameterized.expand(model_names)
@@ -78,7 +78,7 @@ class SaveObjTest(MeetgBaseTestCase):
         bot = AnyHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
         assert not model.find()
-        bot.test_send('Spam')
+        bot.receive_message('Spam')
         assert not model.find()
 
     @parameterized.expand(model_names)
@@ -86,7 +86,7 @@ class SaveObjTest(MeetgBaseTestCase):
         """Ensure the bot adds own timestamp when saves an object"""
         bot = AnyHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
-        bot.test_send('Spam')
+        bot.receive_message('Spam')
         assert 'meetg_created_at' in model.find_one()
 
     @parameterized.expand(model_names)
@@ -95,7 +95,7 @@ class SaveObjTest(MeetgBaseTestCase):
         bot = NoHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
         assert not model.find()
-        bot.test_send('Spam')
+        bot.receive_message('Spam')
         assert model.find()
 
 
@@ -112,7 +112,7 @@ class AnswerTest(MeetgBaseTestCase):
 
     def test_text_answer_to_text(self):
         bot = AnyHandlerBot(mock=True)
-        bot.test_send('Spam')
+        bot.receive_message('Spam')
         assert bot.last_method.name == 'send_message'
         assert bot.last_method.args['chat_id'] == 1
         assert bot.last_method.args['text'] == 'Update received: message'
