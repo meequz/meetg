@@ -1,3 +1,4 @@
+import time
 from copy import deepcopy
 
 import telegram
@@ -26,7 +27,8 @@ class ApiMethod:
             success, response = None, None
         else:
             success, response = self._call(kwargs)
-        self.log(self.args)
+        if success:
+            self.log(self.args)
         return success, response
 
     def _call(self, kwargs):
@@ -34,7 +36,7 @@ class ApiMethod:
         Implement retries and handling network and load issues
         """
         to_attempt = 5
-        success = False
+        success, response = False, None
         tgbot_method = getattr(self.tgbot, self.name)
 
         while to_attempt > 0:
@@ -49,6 +51,9 @@ class ApiMethod:
                     success = True
                     to_attempt = 0
                 elif "Can't parse entities" in exc.message:
+                    logger.error(prefix + '"%s". Retrying is pointless', exc.message)
+                    to_attempt = 0
+                elif "Message to forward not found" in exc.message:
                     logger.error(prefix + '"%s". Retrying is pointless', exc.message)
                     to_attempt = 0
                 else:
@@ -121,8 +126,7 @@ class EditMessageTextMethod(ApiMethod):
         'disable_web_page_preview', 'reply_markup',
     )
     def easy_call(self, chat_id, text, message_id, preview=False):
-        success, response = self._call_bot_api(
-            'edit_message_text',
+        success, response = self.call(
             text=text, chat_id=chat_id, message_id=message_id,
             disable_web_page_preview=not preview,
         )
@@ -141,8 +145,7 @@ class DeleteMessageMethod(ApiMethod):
         'chat_id', 'message_id',
     )
     def easy_call(self, chat_id, message_id):
-        success, response = self._call_bot_api(
-            'delete_message',
+        success, response = self.call(
             chat_id=chat_id, message_id=message_id,
         )
         return success, response
@@ -153,8 +156,34 @@ class DeleteMessageMethod(ApiMethod):
         logger.info('Delete message %s in chat %s', message_id, chat_id)
 
 
+class ForwardMessageMethod(ApiMethod):
+    name = 'forward_message'
+    parameters = (
+        # required
+        'chat_id', 'from_chat_id', 'message_id',
+        # optional
+        'disable_notification',
+    )
+    def easy_call(self, chat_id, from_chat_id, message_id, notify=True):
+        success, response = self.call(
+            chat_id=chat_id, from_chat_id=from_chat_id, message_id=message_id,
+            disable_notification=not notify,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        from_chat_id = kwargs.get('from_chat_id')
+        message_id = kwargs.get('message_id')
+        logger.info(
+            'Forward message %s from chat %s to chat %s',
+            message_id, from_chat_id, chat_id,
+        )
+
+
 api_method_classes = {
     'send_message': SendMessageMethod,
     'edit_message_text': EditMessageTextMethod,
     'delete_message': DeleteMessageMethod,
+    'forward_message': ForwardMessageMethod,
 }
