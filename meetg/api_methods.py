@@ -19,8 +19,14 @@ class ApiMethod:
         """Call the method by simplified params"""
         raise NotImplementedError
 
+    def log(self, kwargs):
+        raise NotImplementedError
+
     def call(self, **kwargs):
-        """Call the method by the exact Telegram API params"""
+        """
+        Call the method by the exact Telegram API params,
+        by keyword arguments only, to easily validate them
+        """
         self.args = deepcopy(kwargs)
         kwargs = self._validate(kwargs)
         if self.is_mock:
@@ -125,7 +131,7 @@ class EditMessageTextMethod(ApiMethod):
         'chat_id', 'message_id', 'inline_message_id', 'parse_mode', 'entities',
         'disable_web_page_preview', 'reply_markup',
     )
-    def easy_call(self, chat_id, text, message_id, preview=False):
+    def easy_call(self, text, chat_id, message_id, preview=False):
         success, response = self.call(
             text=text, chat_id=chat_id, message_id=message_id,
             disable_web_page_preview=not preview,

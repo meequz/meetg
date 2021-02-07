@@ -29,6 +29,7 @@ class BaseBot:
         self._init_jobs()
 
     def _init_updater(self):
+        """Init PTB updater"""
         updater_class = UpdaterMock if self._is_mock else Updater
         self.updater = updater_class(settings.tg_api_token, use_context=True)
         self._tgbot = self.updater.bot
@@ -100,16 +101,24 @@ class BaseBot:
         update_obj = factory.create(text, **kwargs)
         return self._mock_process_update(update_obj)
 
-    def __getattr__(self, name):
+    def __getattr__(self, attrname):
         """
-        Find API method class by the name, create it,
-        and return its easy_call method
+        Find API method class by the name, instantiate it,
+        remember in self.last_method and return generated method
+        with its easy_call() result inside
         """
-        method_class = api_method_classes.get(name)
+        method_class = api_method_classes.get(attrname)
         if method_class:
-            method = method_class(self._tgbot, self._is_mock)
-            self.last_method = method
-            return method.easy_call
+            method_obj = method_class(self._tgbot, self._is_mock)
+            self.last_method = method_obj
+
+            def _internal_call(*args, **kwargs):
+                return method_obj.easy_call(*args, **kwargs)
+
+            return _internal_call
+
+        else:
+            raise NameError(f'API method {attrname} not found')
 
 
 class SaveOnUpdateHandler(Handler):

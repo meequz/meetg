@@ -39,6 +39,9 @@ class UpdateFactory:
 
 
 class MessageUpdateFactory(UpdateFactory):
+    """
+    Factory of an Update with 'message' field
+    """
     name = 'message'
     parameters = (
         # required
