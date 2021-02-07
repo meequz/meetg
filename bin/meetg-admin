@@ -8,10 +8,12 @@ from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext import Filters, Updater
 
 
+# Example of your bot
 class {name_cc}Bot(BaseBot):
-    """Example of your bot"""
 
     def init_handlers(self):
+        # Define handlers here. See available handlers in the PTB docs:
+        # https://python-telegram-bot.readthedocs.io/en/stable/telegram.html#handlers
         handlers = (
             CommandHandler('start', self.reply_start, Filters.chat_type.private),
             MessageHandler(Filters.chat_type.private, self.reply_private),
@@ -19,22 +21,32 @@ class {name_cc}Bot(BaseBot):
         )
         return handlers
 
+    def init_jobs(self, job_queue):
+        # Define periodic jobs here. See the PTB docs for JobQueue methods:
+        # https://python-telegram-bot.readthedocs.io/en/stable/telegram.ext.jobqueue.html
+        job_queue.run_repeating(self.job_do_stuff, 60 * 60)  # each hour
+
     def reply_start(self, update_obj, context):
+        # What to do when /start command received
         chat_id = update_obj.effective_chat.id
-        answer = 'Hello, world! It is a reply to /start command'
-        self.send_message(chat_id, answer)
+        self.send_message(chat_id, '/start received')
 
     def reply_private(self, update_obj, context):
+        # What to do when a private message received
         chat_id = update_obj.effective_chat.id
         text = update_obj.effective_message.text
-        answer = f'Message received in private: {{text}}'
+        answer = f'Text received in private: {{text}}'
         self.send_message(chat_id, answer)
 
     def reply_group(self, update_obj, context):
+        # What to do when a group message received
         chat_id = update_obj.effective_chat.id
         text = update_obj.effective_message.text
-        answer = f'Message received in group: {{text}}'
+        answer = f'Text received in group: {{text}}'
         self.send_message(chat_id, answer)
+
+    def job_do_stuff(self, context):
+        print('Any action could be here')
 '''
 
 MANAGE_PY = '''

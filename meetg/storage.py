@@ -97,6 +97,7 @@ class MongoStorage(AbstractStorage):
 
 
 class BaseDefaultModel:
+    """Base class for default models"""
     tg_id_field = None
     related_to_update = False
 

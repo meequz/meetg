@@ -34,7 +34,7 @@ class UpdateFactory:
             if key in self.parameters:
                 validated[key] = data[key]
             else:
-                logger.error('Wrong arg %s passed to %s update', key, self.name)
+                logger.error('Unknown arg %s passed to %s update', key, self.name)
         return validated
 
 

@@ -51,6 +51,15 @@ class JobQueueMock:
     def run_daily(self, callback, period):
         pass
 
+    def run_repeating(self, callback, period):
+        pass
+
+    def run_monthly(self, callback, period):
+        pass
+
+    def run_once(self, callback, period):
+        pass
+
 
 class TgBotMock:
     """A mock for PTB Bot"""

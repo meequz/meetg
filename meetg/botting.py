@@ -47,15 +47,15 @@ class BaseBot:
         logger.warning('No handlers found')
         return ()
 
-    def init_jobs(self):
+    def init_jobs(self, job_queue):
         """Intended to be redefined in your bot class"""
         pass
 
     def _init_jobs(self):
         """Set default jobs to self.updater.job_queue before self.init_jobs()"""
         stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))  # 00:00 UTC
-        self.updater.job_queue.run_daily(self.job_report_stats, stats_dt)
-        self.init_jobs()
+        self.updater.job_queue.run_daily(self._job_report_stats, stats_dt)
+        self.init_jobs(self.updater.job_queue)
 
     def _init_models(self, test=False):
         """Read model classes from settings, import and add them to self"""
@@ -72,7 +72,7 @@ class BaseBot:
             if check not in (None, False):
                 return handler.callback(update_obj, None)
 
-    def job_report_stats(self, context):
+    def _job_report_stats(self, context):
         """Report bots stats daily"""
         if settings.stats_to:
             reports = ''.join([m.get_day_report() for m in self._models])
