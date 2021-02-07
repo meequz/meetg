@@ -46,7 +46,7 @@ class {name_cc}Bot(BaseBot):
         self.send_message(chat_id, answer)
 
     def job_do_stuff(self, context):
-        print('Any action could be here')
+        print('job_do_stuff executed')
 '''
 
 MANAGE_PY = '''

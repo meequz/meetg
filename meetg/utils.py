@@ -34,7 +34,7 @@ def frange(start, stop=None, step=None):
 
 
 def get_current_unixtime():
-    return int(time.time())
+    return time.time()
 
 
 def import_string(dotted_path):

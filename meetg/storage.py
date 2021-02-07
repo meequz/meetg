@@ -168,7 +168,7 @@ class BaseDefaultModel:
     def get_day_report(self):
         pattern = self._get_created_for_last_day_pattern()
         received = self.count(pattern)
-        return f'- received {received} {self.name_lower}s\n'
+        return f'received {received} {self.name_lower}s'
 
 
 class DefaultUpdateModel(BaseDefaultModel):
