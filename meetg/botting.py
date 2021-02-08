@@ -11,7 +11,8 @@ from meetg.loging import get_logger
 from meetg.storage import get_model_classes
 from meetg.testing import UpdaterMock
 from meetg.update_factories import (
-    MessageUpdateFactory
+    EditedMessageUpdateFactory,
+    MessageUpdateFactory,
 )
 from meetg.utils import (
     get_current_unixtime,
@@ -101,15 +102,22 @@ class BaseBot:
             self.send_message(
                 chat_id, text, reply_to=reply_to, markup=markup, html=html, preview=preview,
             )
-        logger.info('Broadcasted message: %s', repr(text[:79]))
+        logger.info('Message broadcasted: %s', repr(text[:79]))
 
     def receive_message(self, text, **kwargs):
         """
-        For using in tests.
-        Simulates receiving Update with 'message' by the bot
+        Simulates receiving Update with 'message' by the bot in tests
         """
         factory = MessageUpdateFactory(self)
         update_obj = factory.create(text, **kwargs)
+        return self._mock_process_update(update_obj)
+
+    def receive_edited_message(self, text, chat_id, message_id, **kwargs):
+        """
+        Simulates receiving Update with 'edited_message' by the bot in tests
+        """
+        factory = EditedMessageUpdateFactory(self)
+        update_obj = factory.create(text, chat_id, message_id, **kwargs)
         return self._mock_process_update(update_obj)
 
     def __getattr__(self, attrname):
@@ -153,7 +161,7 @@ class _SaveOnUpdateHandler(Handler):
     def save(self, update_obj):
         """Save all the fields specified in enabled models"""
         for model in self.models:
-            model.create_from_update_obj(update_obj)
+            model.save_from_update_obj(update_obj)
 
 
 class _SaveTimeJobQueueWrapper:

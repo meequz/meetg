@@ -79,10 +79,45 @@ class MessageUpdateFactory(UpdateFactory):
         # replace with UserFactory
         from_user = User(id=get_next_int(), first_name='Palin', is_bot=False)
         entities = parse_entities(text)
-        
+
+        # replace with MessageFactory
         message = Message(
             message_id=message_id, text=text, date=date, chat=chat, from_user=from_user,
             entities=entities, bot=self.tgbot,
         )
         update_obj = Update(get_next_int(), message=message)
+        return update_obj
+
+
+class EditedMessageUpdateFactory(MessageUpdateFactory):
+    """
+    Factory of an Update with 'edited_message' field
+    """
+    name = 'edited_message'
+    defaults = ()
+
+    def create(self, text, chat_id, message_id, **kwargs):
+        validated = self._validate(kwargs)
+        args = dict(self.defaults)
+        args.update(validated)
+
+        date = args.get('date', datetime.datetime.now())
+        edit_date = datetime.datetime.now()
+
+        # replace with ChatFactory
+        chat_kwargs = {k[6:]: v for k, v in kwargs.items() if k.startswith('chat__')}
+        chat_args = {'id': chat_id, 'type': 'private'}  # default
+        chat_args.update(chat_kwargs)
+        chat = Chat(**chat_args)
+
+        # replace with UserFactory
+        from_user = User(id=get_next_int(), first_name='Palin', is_bot=False)
+        entities = parse_entities(text)
+
+        # replace with MessageFactory
+        edited_message = Message(
+            message_id=message_id, text=text, date=date, edit_date=edit_date, chat=chat,
+            from_user=from_user, entities=entities, bot=self.tgbot,
+        )
+        update_obj = Update(get_next_int(), edited_message=edited_message)
         return update_obj

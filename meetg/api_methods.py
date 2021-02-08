@@ -39,7 +39,7 @@ class ApiMethod:
 
     def _call(self, kwargs):
         """
-        Implement retries and handling network and load issues
+        Retries, handling network and load issues
         """
         to_attempt = 5
         success, response = False, None

@@ -152,6 +152,10 @@ class BaseDefaultModel:
         found = self._storage.find_one(pattern)
         return found
 
+    def update_one(self, pattern, new_data):
+        updated = self._storage.update_one(pattern, new_data)
+        return updated
+
     def count(self, pattern=None):
         counted = self._storage.count(pattern)
         return counted
@@ -169,6 +173,10 @@ class BaseDefaultModel:
         pattern = self._get_created_for_last_day_pattern()
         received = self.count(pattern)
         return f'received {received} {self.name_lower}s'
+
+    def save_from_update_obj(self, update_obj):
+        """Create or update the object in DB"""
+        self.create_from_update_obj(update_obj)
 
 
 class DefaultUpdateModel(BaseDefaultModel):
@@ -215,6 +223,17 @@ class DefaultMessageModel(BaseDefaultModel):
         if update_obj.effective_message:
             data = update_obj.effective_message.to_dict()
             return self.create(data)
+
+    def save_from_update_obj(self, update_obj):
+        message = update_obj.effective_message
+        chat = update_obj.effective_chat
+        if message:
+            pattern = {'message_id': message.message_id, 'chat.id': chat.id}
+            db_message = self.find_one(pattern)
+            if db_message:
+                self.update_one(pattern, message.to_dict())
+            else:
+                self.create_from_update_obj(update_obj)
 
 
 class DefaultUserModel(BaseDefaultModel):

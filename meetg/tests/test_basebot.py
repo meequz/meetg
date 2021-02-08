@@ -99,6 +99,22 @@ class SaveObjTest(MeetgBaseTestCase):
         assert model.find()
 
 
+class UpdateDbObjTest(MeetgBaseTestCase):
+    """
+    Tests about updating objects in database,
+    not about PTB Update object
+    """
+    def test_update_message(self):
+        """Ensure the bot updates message in storage when it is edited"""
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam', chat_id=1, message_id=1)
+        assert bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'Spam'})
+
+        bot.receive_edited_message('SpamSpamSpam', 1, 1)
+        assert not bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'Spam'})
+        assert bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'SpamSpamSpam'})
+
+
 class StatTest(MeetgBaseTestCase):
 
     def test_stats_msg_broadcasted(self):
