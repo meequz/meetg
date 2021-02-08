@@ -8,9 +8,9 @@ from telegram.ext import Handler, Updater
 import settings
 from meetg.api_methods import api_method_classes
 from meetg.loging import get_logger
-from meetg.storage import get_model_classes
+from meetg.storage import ApiTypeModel, get_model_classes
 from meetg.testing import UpdaterMock
-from meetg.update_factories import (
+from meetg.factories import (
     EditedMessageUpdateFactory,
     MessageUpdateFactory,
 )
@@ -148,10 +148,10 @@ class _SaveOnUpdateHandler(Handler):
     """
     def __init__(self, models):
         super().__init__(lambda: None)
-        # leave only enabled update-related models
+        # leave only models related to Bot API
         self.models = []
         for model in models:
-            if model.related_to_update and model.save_fields:
+            if isinstance(model, ApiTypeModel) and model.fields:
                 self.models.append(model)
 
     def check_update(self, update_obj):

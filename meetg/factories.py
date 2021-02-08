@@ -1,10 +1,13 @@
 """
 Help generate various Update objects used in testing
 """
-import datetime
+import copy, datetime
 
 from telegram import Chat, Message, Update, User
 
+from meetg.api_types import (
+    ApiType, ChatApiType, MessageApiType, UpdateApiType, UserApiType,
+)
 from meetg.loging import get_logger
 from meetg.utils import parse_entities
 
@@ -21,21 +24,21 @@ def get_next_int():
     return LAST_INT
 
 
-class UpdateFactory:
+class Factory:
     """
-    Base factory of Update objects
+    Base class for any factory of a PTB object
     """
+    ptb_object_name = None
+
     def __init__(self, tgbot):
         self.tgbot = tgbot
 
-    def _validate(self, data):
-        validated = {}
-        for key in data:
-            if key in self.parameters:
-                validated[key] = data[key]
-            else:
-                logger.error('Unknown arg %s passed to %s update', key, self.name)
-        return validated
+
+class UpdateFactory(Factory):
+    """
+    Base factory of Update objects
+    """
+    ptb_object_name = 'Update'
 
 
 class MessageUpdateFactory(UpdateFactory):
@@ -63,7 +66,7 @@ class MessageUpdateFactory(UpdateFactory):
     )
 
     def create(self, text, **kwargs):
-        validated = self._validate(kwargs)
+        validated = copy.deepcopy(kwargs)  # fix
         args = dict(self.defaults)
         args.update(validated)
 
@@ -97,7 +100,7 @@ class EditedMessageUpdateFactory(MessageUpdateFactory):
     defaults = ()
 
     def create(self, text, chat_id, message_id, **kwargs):
-        validated = self._validate(kwargs)
+        validated = copy.deepcopy(kwargs)  # fix
         args = dict(self.defaults)
         args.update(validated)
 

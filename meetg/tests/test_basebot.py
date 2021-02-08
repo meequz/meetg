@@ -34,22 +34,22 @@ class NoHandlerBot(BaseBot):
 
 class NoSaveUpdateModel(DefaultUpdateModel):
     """When use such a model, no objects are saved in storage"""
-    save_fields = ()
+    fields = ()
 
 
 class NoSaveMessageModel(DefaultMessageModel):
     """When use such a model, no objects are saved in storage"""
-    save_fields = ()
+    fields = ()
 
 
 class NoSaveUserModel(DefaultUserModel):
     """When use such a model, no objects are saved in storage"""
-    save_fields = ()
+    fields = ()
 
 
 class NoSaveChatModel(DefaultChatModel):
     """When use such a model, no objects are saved in storage"""
-    save_fields = ()
+    fields = ()
 
 
 class SaveObjTest(MeetgBaseTestCase):
@@ -71,7 +71,7 @@ class SaveObjTest(MeetgBaseTestCase):
         """
         Ensure the bot doesn't save an object in storage
         """
-        # apply model class with save_fields = ()
+        # apply model class with fields = ()
         no_save_model_class = f'meetg.tests.test_basebot.NoSave{model_name}Model'
         setattr(settings, f'{model_name.lower()}_model_class', no_save_model_class)
 

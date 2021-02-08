@@ -3,6 +3,9 @@ import time
 import pymongo
 
 import settings
+from meetg.api_types import (
+    ApiType, ChatApiType, MessageApiType, UpdateApiType, UserApiType,
+)
 from meetg.utils import get_unixtime_before_now, import_string
 from meetg.loging import get_logger
 
@@ -98,8 +101,6 @@ class MongoStorage(AbstractStorage):
 
 class BaseDefaultModel:
     """Base class for default models"""
-    tg_id_field = None
-    related_to_update = False
 
     def __init__(self, test=False):
         db_name = settings.db_name_test if test else settings.db_name
@@ -120,7 +121,7 @@ class BaseDefaultModel:
     def _validate(self, data):
         validated = {}
         for field in data:
-            if field in self.save_fields:
+            if field in self.fields:
                 validated[field] = data[field]
             else:
                 logger.warning('Field %s doesn\'t belong to model %s', field, self.name)
@@ -131,10 +132,7 @@ class BaseDefaultModel:
         return result
 
     def _log_create(self, data: dict):
-        if self.tg_id_field:
-            logger.info('Storage: %s %s created', self.name, data[self.tg_id_field])
-        else:
-            logger.info('Storage: %s created', self.name)
+        logger.info('Storage: %s created', self.name)
 
     def create(self, data: dict):
         data = self._validate(data)
@@ -174,55 +172,35 @@ class BaseDefaultModel:
         received = self.count(pattern)
         return f'received {received} {self.name_lower}s'
 
+
+class ApiTypeModel(BaseDefaultModel):
+    """Base model class for Bot API-related objects"""
+
+    def _log_create(self, data: dict):
+        id_field = self.api_type.id_field
+        logger.info('Storage: %s %s created', self.name, data[id_field])
+
     def save_from_update_obj(self, update_obj):
         """Create or update the object in DB"""
-        self.create_from_update_obj(update_obj)
+        raise NotImplementedError
 
 
-class DefaultUpdateModel(BaseDefaultModel):
-    name = 'Update'
-    tg_id_field = 'update_id'
-    related_to_update = True
-    fields = (
-        # required
-        'update_id',
-        # optional
-        'message', 'edited_message', 'channel_post', 'edited_channel_post', 'inline_query',
-        'chosen_inline_result', 'callback_query', 'shipping_query', 'pre_checkout_query', 'poll',
-        'poll_answer',
-    )
-    save_fields = fields
+class DefaultUpdateModel(ApiTypeModel):
+    api_type = UpdateApiType
 
-    def create_from_update_obj(self, update_obj):
+    name = api_type.name
+    fields = api_type.fields
+
+    def save_from_update_obj(self, update_obj):
         data = update_obj.to_dict()
         return self.create(data)
 
 
-class DefaultMessageModel(BaseDefaultModel):
-    name = 'Message'
-    tg_id_field = 'message_id'
-    related_to_update = True
-    fields = (
-        # required
-        'message_id', 'date', 'chat',
-        # optional
-        'from', 'sender_chat', 'forward_from', 'forward_from_chat', 'forward_from_message_id',
-        'forward_signature', 'forward_sender_name', 'forward_date', 'reply_to_message', 'via_bot',
-        'edit_date', 'media_group_id', 'author_signature', 'text', 'entities', 'animation',
-        'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'caption',
-        'caption_entities', 'contact', 'dice', 'game', 'poll', 'venue', 'location',
-        'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo',
-        'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created',
-        'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message',
-        'invoice', 'successful_payment', 'connected_website', 'passport_data',
-        'proximity_alert_triggered', 'reply_markup',
-    )
-    save_fields = fields
+class DefaultMessageModel(ApiTypeModel):
+    api_type = MessageApiType
 
-    def create_from_update_obj(self, update_obj):
-        if update_obj.effective_message:
-            data = update_obj.effective_message.to_dict()
-            return self.create(data)
+    name = api_type.name
+    fields = api_type.fields
 
     def save_from_update_obj(self, update_obj):
         message = update_obj.effective_message
@@ -233,43 +211,28 @@ class DefaultMessageModel(BaseDefaultModel):
             if db_message:
                 self.update_one(pattern, message.to_dict())
             else:
-                self.create_from_update_obj(update_obj)
+                self.create(message.to_dict())
 
 
-class DefaultUserModel(BaseDefaultModel):
-    name = 'User'
-    tg_id_field = 'id'
-    related_to_update = True
-    fields = (
-        # required
-        'id', 'is_bot', 'first_name',
-        # optional
-        'last_name', 'username', 'language_code', 'can_join_groups', 'can_read_all_group_messages',
-        'supports_inline_queries',
-    )
-    save_fields = fields
+class DefaultUserModel(ApiTypeModel):
+    api_type = UserApiType
 
-    def create_from_update_obj(self, update_obj):
-        if update_obj.effective_user:
-            data = update_obj.effective_user.to_dict()
-            return self.create(data)
+    name = api_type.name
+    fields = api_type.fields
+
+    def save_from_update_obj(self, update_obj):
+        user = update_obj.effective_user
+        if user:
+            return self.create(user.to_dict())
 
 
-class DefaultChatModel(BaseDefaultModel):
-    name = 'Chat'
-    tg_id_field = 'id'
-    related_to_update = True
-    fields = (
-        # required
-        'id', 'type',
-        # optional
-        'title', 'username', 'first_name', 'last_name', 'photo', 'bio', 'description',
-        'invite_link', 'pinned_message', 'permissions', 'slow_mode_delay', 'sticker_set_name',
-        'can_set_sticker_set', 'linked_chat_id', 'location', 'all_members_are_administrators',
-    )
-    save_fields = fields
+class DefaultChatModel(ApiTypeModel):
+    api_type = ChatApiType
 
-    def create_from_update_obj(self, update_obj):
-        if update_obj.effective_chat:
-            data = update_obj.effective_chat.to_dict()
-            return self.create(data)
+    name = api_type.name
+    fields = api_type.fields
+
+    def save_from_update_obj(self, update_obj):
+        chat = update_obj.effective_chat
+        if chat:
+            return self.create(chat.to_dict())
