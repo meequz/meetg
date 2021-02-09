@@ -37,10 +37,14 @@ class Factory:
                 filtered[key[length:]] = val
         return filtered
 
-    def create(self, **kwargs):
+    def _create_args(self, kwargs):
         validated_data = self.api_type(kwargs).validated_data
         args = self.get_defaults()
         args.update(validated_data)
+        return args
+
+    def create(self, **kwargs):
+        args = self._create_args(kwargs)
         obj = self.api_type.ptb_class(**args)
         return obj
 
@@ -83,29 +87,30 @@ class MessageFactory(Factory):
         super().__init__(tgbot)
         self.message_type = message_type
 
-    def create(self, **kwargs):
-        chat_args = self._filter_prefix(kwargs, 'chat__')
-        chat = ChatFactory(self.tgbot).create(**chat_args)
-
-        from_user_args = self._filter_prefix(kwargs, 'from__')
-        from_user = UserFactory(self.tgbot).create(**from_user_args)
-
-        text = kwargs.get('text', 'Spam')
-        date = kwargs.get('date', datetime.datetime.now())
-        args = {
-            'message_id': kwargs.get('message_id', get_next_int()),
-            'text': text,
-            'date': date,
-            'chat': chat,
-            'from_user': from_user,
-            'entities': parse_entities(text),
+    def get_defaults(self):
+        defaults = {
+            'message_id': get_next_int(),
+            'text': 'Spam',
+            'date': datetime.datetime.now(),
             'bot': self.tgbot,
         }
         if self.message_type == 'edited_message':
-            args['edit_date'] = datetime.datetime.now()
+            defaults['edit_date'] = datetime.datetime.now()
+        return defaults
 
-        message = self.api_type.ptb_class(**args)
-        return message
+    def create(self, **kwargs):
+        chat_args = self._filter_prefix(kwargs, 'chat__')
+        from_user_args = self._filter_prefix(kwargs, 'from__')
+        if 'id' in chat_args and chat_args['id'] > 0 and 'id' not in from_user_args:
+            from_user_args['id'] = chat_args['id']
+
+        args = self._create_args(kwargs)
+        args['chat'] = ChatFactory(self.tgbot).create(**chat_args)
+        args['from_user'] = UserFactory(self.tgbot).create(**from_user_args)
+        args['entities'] = parse_entities(args['text'])
+
+        obj = self.api_type.ptb_class(**args)
+        return obj
 
 
 class MessageUpdateFactory(UpdateFactory):

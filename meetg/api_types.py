@@ -17,8 +17,6 @@ class ApiType:
         for key in data:
             if key in self.fields:
                 validated[key] = data[key]
-            else:
-                raise NameError(f'Unknown key {key}')
         return validated
 
     def get_ptb(self):

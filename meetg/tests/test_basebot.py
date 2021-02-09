@@ -130,7 +130,6 @@ class AnswerTest(MeetgBaseTestCase):
         bot = AnyHandlerBot(mock=True)
         bot.receive_message('Spam')
         assert bot.last_method.name == 'send_message'
-        assert bot.last_method.args['chat_id'] == 1
         assert bot.last_method.args['text'] == 'Update received: message'
 
     def test_text_answer(self):
