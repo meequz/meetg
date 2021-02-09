@@ -114,6 +114,48 @@ class UpdateDbObjTest(MeetgBaseTestCase):
         assert not bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'Test Spam'})
         assert bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'SpamSpamSpam'})
 
+    def test_update_user(self):
+        """Ensure the bot updates user in storage"""
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Test Spam', from__id=531, from__username='palin')
+        assert bot.user_model.find_one({'id': 531, 'username': 'palin'})
+
+        bot.receive_message('Another Spam', from__id=531, from__username='jones')
+        assert bot.user_model.count() == 1
+        assert not bot.user_model.find_one({'id': 531, 'username': 'palin'})
+        assert bot.user_model.find_one({'id': 531, 'username': 'jones'})
+
+    def test_update_chat(self):
+        """Ensure the bot updates chat in storage"""
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam', chat__id=642, chat__first_name='Palin')
+        assert bot.chat_model.find_one({'id': 642, 'first_name': 'Palin'})
+
+        bot.receive_message('More Spam', chat__id=642, chat__first_name='Jones')
+        assert bot.chat_model.count() == 1
+        assert not bot.chat_model.find_one({'id': 642, 'first_name': 'Palin'})
+        assert bot.chat_model.find_one({'id': 642, 'first_name': 'Jones'})
+
+    def test_save_with_modified_at(self):
+        """Ensure the bot adds own timestamp when updates an object"""
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam', from__id=531, from__username='palin')
+        assert bot.user_model.count() == 1
+        assert not bot.user_model.find_one()['meetg_modified_at']
+
+        bot.receive_message('More Spam', from__id=531, from__username='jones')
+        assert bot.user_model.count() == 1
+        assert bot.user_model.find_one()['meetg_modified_at']
+
+    def test_not_updated_when_the_same(self):
+        """Ensure the bot doesn't update the object if it not changed"""
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam', from__id=531)
+        assert not bot.user_model.find_one()['meetg_modified_at']
+
+        bot.receive_message('More Spam', from__id=531)
+        assert not bot.user_model.find_one()['meetg_modified_at']
+
 
 class StatTest(MeetgBaseTestCase):
 

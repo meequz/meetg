@@ -70,6 +70,7 @@ class MongoStorage(AbstractStorage):
 
     def create(self, entry):
         entry['meetg_created_at'] = time.time()
+        entry['meetg_modified_at'] = None
         return self.table.insert_one(entry)
 
     def update(self, pattern, new_data):
@@ -81,7 +82,7 @@ class MongoStorage(AbstractStorage):
         return self.table.update_one(pattern, {'$set': new_data})
 
     def count(self, pattern=None):
-        return self.table.count_documents(pattern)
+        return self.table.count_documents(pattern or {})
 
     def find(self, pattern=None):
         return self.table.find(pattern)
@@ -174,15 +175,38 @@ class BaseDefaultModel:
 
 
 class ApiTypeModel(BaseDefaultModel):
-    """Base model class for Bot API-related objects"""
+    """Base model class for objects related to Bot API"""
 
     def _log_create(self, data: dict):
         id_field = self.api_type.id_field
         logger.info('Storage: %s %s created', self.name, data[id_field])
 
-    def save_from_update_obj(self, update_obj):
-        """Create or update the object in DB"""
+    def get_ptb_obj(self, update_obj):
         raise NotImplementedError
+
+    def get_pattern(self, ptb_obj):
+        raise NotImplementedError
+
+    def is_equal(self, ptb_obj, db_obj):
+        equal = True
+        for key, val in ptb_obj.to_dict().items():
+            if key in db_obj:
+                if db_obj[key] != val:
+                    equal = False
+                    break
+        return equal
+
+    def save_from_update_obj(self, update_obj):
+        """Create or update object in DB"""
+        ptb_obj = self.get_ptb_obj(update_obj)
+        if ptb_obj:
+            pattern = self.get_pattern(ptb_obj)
+            db_obj = self.find_one(pattern)
+            if db_obj:
+                if not self.is_equal(ptb_obj, db_obj):
+                    self.update_one(pattern, ptb_obj.to_dict())
+            else:
+                self.create(ptb_obj.to_dict())
 
 
 class DefaultUpdateModel(ApiTypeModel):
@@ -195,6 +219,13 @@ class DefaultUpdateModel(ApiTypeModel):
         data = update_obj.to_dict()
         return self.create(data)
 
+    def get_ptb_obj(self, update_obj):
+        return update_obj
+
+    def get_pattern(self, ptb_obj):
+        pattern = {self.api_type.id_field: ptb_obj.update_id}
+        return pattern
+
 
 class DefaultMessageModel(ApiTypeModel):
     api_type = MessageApiType
@@ -202,16 +233,13 @@ class DefaultMessageModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def save_from_update_obj(self, update_obj):
-        message = update_obj.effective_message
-        chat = update_obj.effective_chat
-        if message:
-            pattern = {'message_id': message.message_id, 'chat.id': chat.id}
-            db_message = self.find_one(pattern)
-            if db_message:
-                self.update_one(pattern, message.to_dict())
-            else:
-                self.create(message.to_dict())
+    def get_ptb_obj(self, update_obj):
+        ptb_obj = update_obj.effective_message
+        return ptb_obj
+
+    def get_pattern(self, ptb_obj):
+        pattern = {self.api_type.id_field: ptb_obj.message_id, 'chat.id': ptb_obj.chat.id}
+        return pattern
 
 
 class DefaultUserModel(ApiTypeModel):
@@ -220,10 +248,13 @@ class DefaultUserModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def save_from_update_obj(self, update_obj):
-        user = update_obj.effective_user
-        if user:
-            return self.create(user.to_dict())
+    def get_ptb_obj(self, update_obj):
+        ptb_obj = update_obj.effective_user
+        return ptb_obj
+
+    def get_pattern(self, ptb_obj):
+        pattern = {self.api_type.id_field: ptb_obj.id}
+        return pattern
 
 
 class DefaultChatModel(ApiTypeModel):
@@ -232,7 +263,10 @@ class DefaultChatModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def save_from_update_obj(self, update_obj):
-        chat = update_obj.effective_chat
-        if chat:
-            return self.create(chat.to_dict())
+    def get_ptb_obj(self, update_obj):
+        ptb_obj = update_obj.effective_chat
+        return ptb_obj
+
+    def get_pattern(self, ptb_obj):
+        pattern = {self.api_type.id_field: ptb_obj.id}
+        return pattern
