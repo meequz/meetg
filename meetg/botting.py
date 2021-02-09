@@ -10,10 +10,7 @@ from meetg.api_methods import api_method_classes
 from meetg.loging import get_logger
 from meetg.storage import ApiTypeModel, get_model_classes
 from meetg.testing import UpdaterMock
-from meetg.factories import (
-    EditedMessageUpdateFactory,
-    MessageUpdateFactory,
-)
+from meetg.factories import MessageUpdateFactory
 from meetg.utils import (
     get_current_unixtime,
     get_unixtime_before_now,
@@ -108,16 +105,16 @@ class BaseBot:
         """
         Simulates receiving Update with 'message' by the bot in tests
         """
-        factory = MessageUpdateFactory(self)
-        update_obj = factory.create(text, **kwargs)
+        factory = MessageUpdateFactory(self, 'message')
+        update_obj = factory.create(text=text, **kwargs)
         return self._mock_process_update(update_obj)
 
     def receive_edited_message(self, text, chat_id, message_id, **kwargs):
         """
         Simulates receiving Update with 'edited_message' by the bot in tests
         """
-        factory = EditedMessageUpdateFactory(self)
-        update_obj = factory.create(text, chat_id, message_id, **kwargs)
+        factory = MessageUpdateFactory(self, 'edited_message')
+        update_obj = factory.create(text=text, chat__id=chat_id, message_id=message_id, **kwargs)
         return self._mock_process_update(update_obj)
 
     def __getattr__(self, attrname):

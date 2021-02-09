@@ -10,9 +10,9 @@ class ApiType:
     ptb_class = None
 
     def __init__(self, data):
-        self.validated_data = self._validate(data)
+        self.validated_data = self.validate(data)
 
-    def _validate(self, data):
+    def validate(self, data):
         validated = {}
         for key in data:
             if key in self.fields:
