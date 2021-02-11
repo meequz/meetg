@@ -29,7 +29,7 @@ class TestCommand(Command):
 
 setup(
     name='meetg',
-    version='0.8',
+    version='0.9',
     packages=['meetg'],
     scripts=['bin/meetg-admin'],
     description='Framework for creating Telegram bots',
