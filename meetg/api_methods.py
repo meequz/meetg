@@ -187,8 +187,60 @@ class ForwardMessageMethod(ApiMethod):
         )
 
 
+class SendPhotoMethod(ApiMethod):
+    name = 'send_photo'
+    parameters = (
+        # required
+        'chat_id', 'photo',
+        # optional
+        'caption', 'parse_mode', 'caption_entities', 'disable_notification', 'reply_to_message_id',
+        'allow_sending_without_reply', 'reply_markup',
+    )
+
+    def easy_call(self, chat_id, photo, caption=None, reply_to=None, markup=None, html=None):
+        parse_mode = telegram.ParseMode.HTML if html else None
+        success, response = self.call(
+            chat_id=chat_id, photo=photo, caption=caption, reply_to_message_id=reply_to,
+            reply_markup=markup, parse_mode=parse_mode,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        logger.info('Send photo to chat %s', chat_id)
+
+
+class SendDocumentMethod(ApiMethod):
+    name = 'send_document'
+    parameters = (
+        # required
+        'chat_id', 'document',
+        # optional
+        'thumb', 'caption', 'parse_mode', 'caption_entities', 'disable_content_type_detection',
+        'disable_notification', 'reply_to_message_id', 'allow_sending_without_reply',
+        'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, document, thumb=None, caption=None, reply_to=None, markup=None,
+            html=None,
+        ):
+        parse_mode = telegram.ParseMode.HTML if html else None
+        success, response = self.call(
+            chat_id=chat_id, document=document, thumb=thumb, caption=caption,
+            reply_to_message_id=reply_to, reply_markup=markup, parse_mode=parse_mode,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        logger.info('Send document to chat %s', chat_id)
+
+
 api_method_classes = {
     'send_message': SendMessageMethod,
+    'send_photo': SendPhotoMethod,
+    'send_document': SendDocumentMethod,
     'edit_message_text': EditMessageTextMethod,
     'delete_message': DeleteMessageMethod,
     'forward_message': ForwardMessageMethod,

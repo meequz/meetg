@@ -131,6 +131,9 @@ class BaseDefaultModel:
     def _log_create(self, data: dict):
         logger.info('Storage: %s created', self.name)
 
+    def _log_update(self, data: dict):
+        logger.info('Storage: %s updated', self.name)
+
     def create(self, data: dict):
         data = self._validate(data)
         result = None
@@ -157,6 +160,7 @@ class BaseDefaultModel:
     def update_one(self, pattern, new_data):
         new_data['meetg_modified_at'] = time.time()
         updated = self._storage.update_one(pattern, new_data)
+        self._log_update(pattern)
         return updated
 
     def count(self, pattern=None):
@@ -184,6 +188,10 @@ class ApiTypeModel(BaseDefaultModel):
     def _log_create(self, data: dict):
         id_field = self.api_type.id_field
         logger.info('Storage: %s %s created', self.name, data[id_field])
+
+    def _log_update(self, data: dict):
+        id_field = self.api_type.id_field
+        logger.info('Storage: %s %s updated', self.name, data[id_field])
 
     def get_ptb_obj(self, update_obj):
         raise NotImplementedError
