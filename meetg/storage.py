@@ -69,16 +69,12 @@ class MongoStorage(AbstractStorage):
         self.table = getattr(self.db, table_name)
 
     def create(self, entry):
-        entry['meetg_created_at'] = time.time()
-        entry['meetg_modified_at'] = None
         return self.table.insert_one(entry)
 
     def update(self, pattern, new_data):
-        new_data['meetg_modified_at'] = time.time()  # needs testing
         return self.table.update_many(pattern, {'$set': new_data})
 
     def update_one(self, pattern, new_data):
-        new_data['meetg_modified_at'] = time.time()  # needs testing
         return self.table.update_one(pattern, {'$set': new_data})
 
     def count(self, pattern=None):
@@ -139,6 +135,8 @@ class BaseDefaultModel:
         data = self._validate(data)
         result = None
         if data:
+            data['meetg_created_at'] = time.time()
+            data['meetg_modified_at'] = None
             result = self._storage.create(data)
             self._log_create(data)
         return result
@@ -151,7 +149,13 @@ class BaseDefaultModel:
         found = self._storage.find_one(pattern)
         return found
 
+    def update(self, pattern, new_data):
+        new_data['meetg_modified_at'] = time.time()
+        updated = self._storage.update(pattern, new_data)
+        return updated
+
     def update_one(self, pattern, new_data):
+        new_data['meetg_modified_at'] = time.time()
         updated = self._storage.update_one(pattern, new_data)
         return updated
 
