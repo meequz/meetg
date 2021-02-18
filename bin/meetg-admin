@@ -45,7 +45,7 @@ class {name_cc}Bot(BaseBot):
         answer = f'Text received in group: {{text}}'
         self.send_message(chat_id, answer)
 
-    def job_do_stuff(self, context):
+    def job_do_stuff(self, context=None):
         print('job_do_stuff executed')
 '''
 
@@ -87,17 +87,17 @@ class ReplyTest(BotTestCase):
     def test_reply_start(self):
         self.bot.receive_message('/start')
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_method.args['text'] == 'Hello, world! It is a reply to /start command'
+        assert self.bot.last_method.args['text'] == '/start received'
 
     def test_reply_private(self):
         self.bot.receive_message('p uyui')
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_method.args['text'] == 'Message received in private: p uyui'
+        assert self.bot.last_method.args['text'] == 'Text received in private: p uyui'
 
     def test_reply_group(self):
         self.bot.receive_message('g uyui', chat__type='group')
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_method.args['text'] == 'Message received in group: g uyui'
+        assert self.bot.last_method.args['text'] == 'Text received in group: g uyui'
 '''
 
 PROJECT_CREATED = '''

@@ -30,6 +30,7 @@ class BaseBot:
         self._init_models(test=mock)
         self._init_handlers()
         self._init_jobs()
+        self.last_method = None
 
     def _init_updater(self):
         """Init PTB updater"""
@@ -58,7 +59,7 @@ class BaseBot:
         """Set default jobs to self.updater.job_queue before self.init_jobs()"""
         self._job_queue_wrapper = _SaveTimeJobQueueWrapper(self.updater.job_queue)
         stats_dt = datetime.time(tzinfo=pytz.timezone('UTC'))  # 00:00 UTC
-        self.updater.job_queue.run_daily(self._job_report_stats, stats_dt)
+        self._job_queue_wrapper.run_daily(self._job_report_stats, stats_dt)
         self.init_jobs(self._job_queue_wrapper)
 
     def _init_models(self, test=False):
@@ -76,7 +77,7 @@ class BaseBot:
             if check not in (None, False):
                 return handler.callback(update_obj, None)
 
-    def _job_report_stats(self, context):
+    def _job_report_stats(self, context=None):
         """Report bots stats daily"""
         if not settings.stats_to:
             return
@@ -169,6 +170,7 @@ class _SaveTimeJobQueueWrapper:
     def __init__(self, job_queue):
         self.job_queue = job_queue
         self.last_executed = defaultdict(list)
+        self._wrapped_callbacks = []
 
     def _wrap(self, callback, *args, **kwargs):
 
@@ -184,6 +186,7 @@ class _SaveTimeJobQueueWrapper:
         wrapped.__module__ = callback.__module__
         wrapped.__qualname__ = callback.__qualname__
         wrapped.__annotations__ = callback.__annotations__
+        self._wrapped_callbacks.append(wrapped)
         return wrapped
 
     def run_once(self, callback, *args, **kwargs):

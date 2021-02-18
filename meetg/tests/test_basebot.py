@@ -1,30 +1,13 @@
 import logging
 
 from parameterized import parameterized
-from telegram.ext import MessageHandler
-from telegram.ext import Filters
 
 import settings
 from meetg.botting import BaseBot
 from meetg.storage import (
     DefaultChatModel, DefaultMessageModel, DefaultUpdateModel, DefaultUserModel
 )
-from meetg.tests.base import MeetgBaseTestCase
-from meetg.utils import get_update_type
-
-
-class AnyHandlerBot(BaseBot):
-    """
-    The simplest bot with just one very wide handler
-    """
-    def init_handlers(self):
-        handlers = (MessageHandler(Filters.all, self.reply_any), )
-        return handlers
-
-    def reply_any(self, update_obj, context):
-        chat_id = update_obj.effective_chat.id
-        update_type = get_update_type(update_obj)
-        self.send_message(chat_id, f'Update received: {update_type}')
+from meetg.tests.base import AnyHandlerBot, AnyHandlerBotCase, MeetgBaseTestCase
 
 
 class NoHandlerBot(BaseBot):
@@ -99,84 +82,107 @@ class SaveObjTest(MeetgBaseTestCase):
         assert model.find()
 
 
-class UpdateDbObjTest(MeetgBaseTestCase):
+class UpdateDbObjTest(AnyHandlerBotCase):
     """
     Tests about updating objects in database,
     not about PTB Update object
     """
     def test_update_message(self):
         """Ensure bot updates the message in storage when it is edited"""
-        bot = AnyHandlerBot(mock=True)
-        bot.receive_message('Test Spam', chat__id=1, message_id=1)
-        assert bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'Test Spam'})
+        self.bot.receive_message('Test Spam', chat__id=1, message_id=1)
+        query = {'message_id': 1, 'chat.id': 1, 'text': 'Test Spam'}
+        assert self.bot.message_model.find_one(query)
 
-        bot.receive_edited_message('SpamSpamSpam', 1, 1)
-        assert not bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'Test Spam'})
-        assert bot.message_model.find_one({'message_id': 1, 'chat.id': 1, 'text': 'SpamSpamSpam'})
+        self.bot.receive_edited_message('SpamSpamSpam', 1, 1)
+        query = {'message_id': 1, 'chat.id': 1, 'text': 'Test Spam'}
+        assert not self.bot.message_model.find_one(query)
+        query = {'message_id': 1, 'chat.id': 1, 'text': 'SpamSpamSpam'}
+        assert self.bot.message_model.find_one(query)
 
     def test_update_user(self):
         """Ensure the bot updates user in storage"""
-        bot = AnyHandlerBot(mock=True)
-        bot.receive_message('Test Spam', from__id=531, from__username='palin')
-        assert bot.user_model.find_one({'id': 531, 'username': 'palin'})
+        self.bot.receive_message('Test Spam', from__id=531, from__username='palin')
+        assert self.bot.user_model.find_one({'id': 531, 'username': 'palin'})
 
-        bot.receive_message('Another Spam', from__id=531, from__username='jones')
-        assert bot.user_model.count() == 1
-        assert not bot.user_model.find_one({'id': 531, 'username': 'palin'})
-        assert bot.user_model.find_one({'id': 531, 'username': 'jones'})
+        self.bot.receive_message('Another Spam', from__id=531, from__username='jones')
+        assert self.bot.user_model.count() == 1
+        assert not self.bot.user_model.find_one({'id': 531, 'username': 'palin'})
+        assert self.bot.user_model.find_one({'id': 531, 'username': 'jones'})
 
     def test_update_chat(self):
         """Ensure the bot updates chat in storage"""
-        bot = AnyHandlerBot(mock=True)
-        bot.receive_message('Spam', chat__id=642, chat__first_name='Palin')
-        assert bot.chat_model.find_one({'id': 642, 'first_name': 'Palin'})
+        self.bot.receive_message('Spam', chat__id=642, chat__first_name='Palin')
+        assert self.bot.chat_model.find_one({'id': 642, 'first_name': 'Palin'})
 
-        bot.receive_message('More Spam', chat__id=642, chat__first_name='Jones')
-        assert bot.chat_model.count() == 1
-        assert not bot.chat_model.find_one({'id': 642, 'first_name': 'Palin'})
-        assert bot.chat_model.find_one({'id': 642, 'first_name': 'Jones'})
+        self.bot.receive_message('More Spam', chat__id=642, chat__first_name='Jones')
+        assert self.bot.chat_model.count() == 1
+        assert not self.bot.chat_model.find_one({'id': 642, 'first_name': 'Palin'})
+        assert self.bot.chat_model.find_one({'id': 642, 'first_name': 'Jones'})
 
     def test_save_with_modified_at(self):
         """Ensure the bot adds own timestamp when updates an object"""
-        bot = AnyHandlerBot(mock=True)
-        bot.receive_message('Spam', from__id=531, from__username='palin')
-        assert bot.user_model.count() == 1
-        assert not bot.user_model.find_one()['meetg_modified_at']
+        self.bot.receive_message('Spam', from__id=531, from__username='palin')
+        assert self.bot.user_model.count() == 1
+        assert not self.bot.user_model.find_one()['meetg_modified_at']
 
-        bot.receive_message('More Spam', from__id=531, from__username='jones')
-        assert bot.user_model.count() == 1
-        assert bot.user_model.find_one()['meetg_modified_at']
+        self.bot.receive_message('More Spam', from__id=531, from__username='jones')
+        assert self.bot.user_model.count() == 1
+        assert self.bot.user_model.find_one()['meetg_modified_at']
 
     def test_not_updated_when_the_same(self):
         """Ensure the bot doesn't update the object if it not changed"""
-        bot = AnyHandlerBot(mock=True)
-        bot.receive_message('Spam', from__id=531)
-        assert not bot.user_model.find_one()['meetg_modified_at']
+        self.bot.receive_message('Spam', from__id=531)
+        assert not self.bot.user_model.find_one()['meetg_modified_at']
 
-        bot.receive_message('More Spam', from__id=531)
-        assert not bot.user_model.find_one()['meetg_modified_at']
+        self.bot.receive_message('More Spam', from__id=531)
+        assert not self.bot.user_model.find_one()['meetg_modified_at']
 
 
-class StatTest(MeetgBaseTestCase):
+class StatTest(AnyHandlerBotCase):
+
+    def setUp(self):
+        super().setUp()
+        settings.stats_to = (1, )
 
     def test_stats_msg_broadcasted(self):
-        settings.stats_to = (1, )
-        bot = AnyHandlerBot(mock=True)
-        bot._job_report_stats(None)
-        assert bot.last_method.args['text'].startswith('@mock_username for the')
+        stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
+        stats_job()
+        assert self.bot.last_method.args['text'].startswith('@mock_username for the')
+
+    def test_number_of_api_objects_in_stats(self):
+        self.bot.receive_message('Spam')
+        stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
+        stats_job()
+        broadcasted = self.bot.last_method.args['text']
+        assert 'received 1 chats' in broadcasted
+        assert 'received 1 messages' in broadcasted
+        assert 'received 1 updates' in broadcasted
+        assert 'received 1 users' in broadcasted
+
+    def test_job_time_in_stats(self):
+        self.bot.receive_message('Spam')
+        stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
+        stats_job()
+        stats_job()
+        broadcasted = self.bot.last_method.args['text']
+        assert '_job_report_stats took' in broadcasted
+
+    def test_no_action_if_empty_stats_to(self):
+        settings.stats_to = ()
+        stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
+        stats_job()
+        assert not self.bot.last_method
 
 
-class AnswerTest(MeetgBaseTestCase):
+class AnswerTest(AnyHandlerBotCase):
 
     def test_text_answer_to_text(self):
-        bot = AnyHandlerBot(mock=True)
-        bot.receive_message('Spam')
-        assert bot.last_method.name == 'send_message'
-        assert bot.last_method.args['text'] == 'Update received: message'
+        self.bot.receive_message('Spam')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_method.args['text'] == 'Update received: message'
 
     def test_text_answer(self):
-        bot = AnyHandlerBot(mock=True)
-        bot.send_message(1, 'bot sends this')
-        assert bot.last_method.name == 'send_message'
-        assert bot.last_method.args['chat_id'] == 1
-        assert bot.last_method.args['text'] == 'bot sends this'
+        self.bot.send_message(1, 'bot sends this')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_method.args['chat_id'] == 1
+        assert self.bot.last_method.args['text'] == 'bot sends this'
