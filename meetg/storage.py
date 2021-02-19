@@ -13,11 +13,6 @@ from meetg.loging import get_logger
 logger = get_logger()
 
 
-def get_model_classes():
-    model_classes = [getattr(settings, k) for k in dir(settings) if k.endswith('_model_class')]
-    return model_classes
-
-
 class AbstractStorage:
     """Any other storage must be a subclass of this class"""
 
@@ -145,7 +140,7 @@ class BaseDefaultModel:
         return result
 
     def find(self, query=None):
-        found = [obj for obj in self._storage.find(query)]
+        found = self._storage.find(query)
         return found
 
     def find_one(self, query=None):
@@ -153,11 +148,13 @@ class BaseDefaultModel:
         return found
 
     def update(self, query, new_data):
+        new_data = self._validate(new_data)
         new_data['meetg_modified_at'] = time.time()
         updated = self._storage.update(query, new_data)
         return updated
 
     def update_one(self, query, new_data):
+        new_data = self._validate(new_data)
         new_data['meetg_modified_at'] = time.time()
         updated = self._storage.update_one(query, new_data)
         self._log_update(query)
@@ -288,3 +285,21 @@ class DefaultChatModel(ApiTypeModel):
     def get_query(self, ptb_obj):
         query = {self.api_type.id_field: ptb_obj.id}
         return query
+
+
+def get_model_classes():
+    model_classes = [
+        getattr(settings, k) for k in dir(settings)
+        if k.endswith('_model_class')
+    ]
+    return model_classes
+
+
+def mongo_get_first(cursor):
+    """Return first item in the cursor"""
+    return [item for item in cursor.limit(1)][0]
+
+
+def mongo_get_last(cursor):
+    """Return last item in the cursor"""
+    return [item for item in cursor][-1]

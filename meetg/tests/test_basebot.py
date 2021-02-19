@@ -45,9 +45,9 @@ class SaveObjTest(MeetgBaseTestCase):
         """Ensure the bot saves an object in storage"""
         bot = AnyHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
-        assert not model.find()
+        assert not model.count()
         bot.receive_message('Spam')
-        assert model.find()
+        assert model.count()
 
     @parameterized.expand(model_names)
     def test_no_save(self, model_name):
@@ -60,9 +60,9 @@ class SaveObjTest(MeetgBaseTestCase):
 
         bot = AnyHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
-        assert not model.find()
+        assert not model.count()
         bot.receive_message('Spam')
-        assert not model.find()
+        assert not model.count()
 
     @parameterized.expand(model_names)
     def test_save_with_created_at(self, model_name):
@@ -77,9 +77,9 @@ class SaveObjTest(MeetgBaseTestCase):
         """Ensure the bot without any handler still saves an object"""
         bot = NoHandlerBot(mock=True)
         model = getattr(bot, f'{model_name.lower()}_model')
-        assert not model.find()
+        assert not model.count()
         bot.receive_message('Spam')
-        assert model.find()
+        assert model.count()
 
 
 class UpdateModelWithOnlyUpdateId(DefaultUpdateModel):
@@ -114,7 +114,7 @@ class ChatModelWithOnlyType(DefaultChatModel):
     fields = ('type', )
 
 
-class SaveOnlySpecifiedFields(AnyHandlerBotCase):
+class SaveOnlySpecifiedFields(MeetgBaseTestCase):
 
     def test_save_update_with_only_update_id(self):
         settings.update_model_class = f'meetg.tests.test_basebot.UpdateModelWithOnlyUpdateId'
@@ -183,6 +183,40 @@ class SaveOnlySpecifiedFields(AnyHandlerBotCase):
         db_user = bot.chat_model.find_one()
         assert 'type' in db_user
         assert 'id' not in db_user
+
+
+class MessageModelWithTwoFields(DefaultMessageModel):
+    fields = ('message_id', 'text', 'chat')
+
+
+class UserModelWithTwoFields(DefaultUserModel):
+    fields = ('id', 'is_bot')
+
+
+class UpdateOnlySpecifiedFields(AnyHandlerBotCase):
+
+    def test_update_message_with_two_fields(self):
+        settings.message_model_class = f'meetg.tests.test_basebot.MessageModelWithTwoFields'
+        bot = AnyHandlerBot(mock=True)
+
+        bot.receive_message('Spam 1', chat__id=1, message_id=1)
+        last_db_message = bot.message_model.find_one()
+        assert 'date' not in last_db_message
+        assert last_db_message['text'] == 'Spam 1'
+
+        bot.receive_edited_message('SpamSpamSpam 2', 1, 1)
+        last_db_message = bot.message_model.find_one()
+        assert 'date' not in last_db_message
+        assert 'delete_chat_photo' not in last_db_message
+        assert last_db_message['text'] == 'SpamSpamSpam 2'
+
+    def test_update_user_with_two_fields(self):
+        settings.user_model_class = f'meetg.tests.test_basebot.UserModelWithTwoFields'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam', from__id=1, from__first_name='Toip')
+        assert 'first_name' not in bot.user_model.find_one()
+        bot.receive_message('Spam', from__id=1, from__first_name='Gbossu')
+        assert 'first_name' not in bot.user_model.find_one()
 
 
 class UpdateDbObjTest(AnyHandlerBotCase):
