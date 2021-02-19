@@ -30,25 +30,25 @@ class AbstractStorage:
     def create(self, entry):
         raise NotImplementedError
 
-    def update(self, pattern, update):
+    def update(self, query, update):
         raise NotImplementedError
 
-    def update_one(self, pattern, update):
+    def update_one(self, query, update):
         raise NotImplementedError
 
-    def count(self, pattern=None):
+    def count(self, query=None):
         raise NotImplementedError
 
-    def find(self, pattern=None):
+    def find(self, query=None):
         raise NotImplementedError
 
-    def find_one(self, pattern=None):
+    def find_one(self, query=None):
         raise NotImplementedError
 
-    def delete(self, pattern):
+    def delete(self, query):
         raise NotImplementedError
 
-    def delete_one(self, pattern):
+    def delete_one(self, query):
         raise NotImplementedError
 
     def drop(self):
@@ -57,10 +57,10 @@ class AbstractStorage:
 
 class MongoStorage(AbstractStorage):
     """
-    Wrapper for MongoDB collection methods. Is is some kind of an ORM.
-    Another potential storage, e.g. PostgreStorage, have to implement the same methods,
-    allowing the same args to them. But I'm not sure it will be handful.
-    So methods and args may change in time.
+    Wrapper for MongoDB collection methods. It's some kind of an ORM.
+    The idea is that another potential storage, e.g. PostgreStorage,
+    have to implement the same methods, allowing the same args to them.
+    But I'm not sure it will be handful. So methods and args may change in the future.
     """
     def __init__(self, db_name, table_name, host='localhost', port=27017):
         super().__init__(db_name, table_name, host, port)
@@ -71,26 +71,26 @@ class MongoStorage(AbstractStorage):
     def create(self, entry):
         return self.table.insert_one(entry)
 
-    def update(self, pattern, new_data):
-        return self.table.update_many(pattern, {'$set': new_data})
+    def update(self, query, new_data):
+        return self.table.update_many(query, {'$set': new_data})
 
-    def update_one(self, pattern, new_data):
-        return self.table.update_one(pattern, {'$set': new_data})
+    def update_one(self, query, new_data):
+        return self.table.update_one(query, {'$set': new_data})
 
-    def count(self, pattern=None):
-        return self.table.count_documents(pattern or {})
+    def count(self, query=None):
+        return self.table.count_documents(query or {})
 
-    def find(self, pattern=None):
-        return self.table.find(pattern)
+    def find(self, query=None):
+        return self.table.find(query)
 
-    def find_one(self, pattern=None):
-        return self.table.find_one(pattern)
+    def find_one(self, query=None):
+        return self.table.find_one(query)
 
-    def delete(self, pattern):
-        return self.table.delete_many(pattern)
+    def delete(self, query):
+        return self.table.delete_many(query)
 
-    def delete_one(self, pattern):
-        return self.table.delete_one(pattern)
+    def delete_one(self, query):
+        return self.table.delete_one(query)
 
     def drop(self):
         return self.db.drop_collection(self.table_name)
@@ -144,41 +144,41 @@ class BaseDefaultModel:
             self._log_create(data)
         return result
 
-    def find(self, pattern=None):
-        found = [obj for obj in self._storage.find(pattern)]
+    def find(self, query=None):
+        found = [obj for obj in self._storage.find(query)]
         return found
 
-    def find_one(self, pattern=None):
-        found = self._storage.find_one(pattern)
+    def find_one(self, query=None):
+        found = self._storage.find_one(query)
         return found
 
-    def update(self, pattern, new_data):
+    def update(self, query, new_data):
         new_data['meetg_modified_at'] = time.time()
-        updated = self._storage.update(pattern, new_data)
+        updated = self._storage.update(query, new_data)
         return updated
 
-    def update_one(self, pattern, new_data):
+    def update_one(self, query, new_data):
         new_data['meetg_modified_at'] = time.time()
-        updated = self._storage.update_one(pattern, new_data)
-        self._log_update(pattern)
+        updated = self._storage.update_one(query, new_data)
+        self._log_update(query)
         return updated
 
-    def count(self, pattern=None):
-        counted = self._storage.count(pattern)
+    def count(self, query=None):
+        counted = self._storage.count(query)
         return counted
 
     def _get_created_for_day_query(self):
-        pattern = {
+        query = {
             'meetg_created_at': {
                 '$lt': time.time(),
                 '$gte': get_unixtime_before_now(24),
             },
         }
-        return pattern
+        return query
 
     def get_day_report(self):
-        pattern = self._get_created_for_day_query()
-        count = self.count(pattern)
+        query = self._get_created_for_day_query()
+        count = self.count(query)
         return f'stored {count} new {self.name_lower}s'
 
 
@@ -196,7 +196,7 @@ class ApiTypeModel(BaseDefaultModel):
     def get_ptb_obj(self, update_obj):
         raise NotImplementedError
 
-    def get_pattern(self, ptb_obj):
+    def get_query(self, ptb_obj):
         raise NotImplementedError
 
     def is_equal(self, ptb_obj, db_obj):
@@ -212,11 +212,11 @@ class ApiTypeModel(BaseDefaultModel):
         """Create or update object in DB"""
         ptb_obj = self.get_ptb_obj(update_obj)
         if ptb_obj:
-            pattern = self.get_pattern(ptb_obj)
-            db_obj = self.find_one(pattern)
+            query = self.get_query(ptb_obj)
+            db_obj = self.find_one(query)
             if db_obj:
                 if not self.is_equal(ptb_obj, db_obj):
-                    self.update_one(pattern, ptb_obj.to_dict())
+                    self.update_one(query, ptb_obj.to_dict())
             else:
                 self.create(ptb_obj.to_dict())
 
@@ -234,9 +234,9 @@ class DefaultUpdateModel(ApiTypeModel):
     def get_ptb_obj(self, update_obj):
         return update_obj
 
-    def get_pattern(self, ptb_obj):
-        pattern = {self.api_type.id_field: ptb_obj.update_id}
-        return pattern
+    def get_query(self, ptb_obj):
+        query = {self.api_type.id_field: ptb_obj.update_id}
+        return query
 
 
 class DefaultMessageModel(ApiTypeModel):
@@ -249,9 +249,9 @@ class DefaultMessageModel(ApiTypeModel):
         ptb_obj = update_obj.effective_message
         return ptb_obj
 
-    def get_pattern(self, ptb_obj):
-        pattern = {self.api_type.id_field: ptb_obj.message_id, 'chat.id': ptb_obj.chat.id}
-        return pattern
+    def get_query(self, ptb_obj):
+        query = {self.api_type.id_field: ptb_obj.message_id, 'chat.id': ptb_obj.chat.id}
+        return query
 
 
 class DefaultUserModel(ApiTypeModel):
@@ -264,9 +264,9 @@ class DefaultUserModel(ApiTypeModel):
         ptb_obj = update_obj.effective_user
         return ptb_obj
 
-    def get_pattern(self, ptb_obj):
-        pattern = {self.api_type.id_field: ptb_obj.id}
-        return pattern
+    def get_query(self, ptb_obj):
+        query = {self.api_type.id_field: ptb_obj.id}
+        return query
 
 
 class DefaultChatModel(ApiTypeModel):
@@ -279,6 +279,6 @@ class DefaultChatModel(ApiTypeModel):
         ptb_obj = update_obj.effective_chat
         return ptb_obj
 
-    def get_pattern(self, ptb_obj):
-        pattern = {self.api_type.id_field: ptb_obj.id}
-        return pattern
+    def get_query(self, ptb_obj):
+        query = {self.api_type.id_field: ptb_obj.id}
+        return query

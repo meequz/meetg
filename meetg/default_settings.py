@@ -17,6 +17,9 @@ chat_model_class = 'meetg.storage.DefaultChatModel'
 
 bot_class = 'bot.MyBot'
 
+api_attempts = 5
+network_error_wait = 2
+
 log_path = 'log.txt'
 log_level = logging.INFO
 

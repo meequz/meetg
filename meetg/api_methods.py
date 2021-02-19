@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import telegram
 
+import settings
 from meetg.loging import get_logger
 
 
@@ -41,7 +42,7 @@ class ApiMethod:
         """
         Retries, handling network and load issues
         """
-        to_attempt = 5
+        to_attempt = settings.api_attempts
         success, response = False, None
         tgbot_method = getattr(self.tgbot, self.name)
 
@@ -63,9 +64,12 @@ class ApiMethod:
                     logger.error(prefix + '"%s". Retrying is pointless', exc.message)
                     to_attempt = 0
                 else:
-                    logger.error(prefix + '"%s". Waiting 2 seconds then retry', exc.message)
+                    logger.error(
+                        prefix + '"%s". Waiting %s seconds then retry',
+                        settings.network_error_wait, exc.message,
+                    )
                     to_attempt -= 1
-                    time.sleep(2)
+                    time.sleep(settings.network_error_wait)
                 response = exc.message
             except telegram.error.TimedOut as exc:
                 logger.error('Timed Out. Retrying')
