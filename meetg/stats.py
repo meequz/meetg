@@ -97,3 +97,73 @@ class DateCache(list):
         treshold = self._get_day_treshold()
         if treshold is not None:
             del self[:treshold]
+
+
+def get_job_reports():
+    """Get gathered info from service_cache['stats']['job'] and format it"""
+    reports = []
+    for job_name, segments in service_cache['stats']['job'].items():
+        segments.clear_before_last_day()
+        duration = segments.get_day_duration()
+        line = f'{job_name} took {duration:.3f} seconds total'
+        reports.append(line)
+    return reports
+
+
+def get_update_reports():
+    """Get gathered info from service_cache['stats']['update'] and format it"""
+    update_reports = []
+    for update_type, dates in service_cache['stats']['update'].items():
+        dates.clear_before_last_day()
+        count = dates.get_day_count()
+        line = f"received {count} '{update_type}' updates"
+        update_reports.append(line)
+    return update_reports
+
+
+class _SaveTimeJobQueueWrapper:
+    """
+    A wrapper to measure job time execution,
+    to report it in stats
+    """
+    def __init__(self, job_queue):
+        self.job_queue = job_queue
+        self._wrapped_callbacks = []
+
+    def _wrap(self, callback, *args, **kwargs):
+
+        def wrapped(*args, **kwargs):
+            service_cache['stats']['job'].init(DateCache)
+            segment = DateSegment()
+            result = callback(*args, **kwargs)
+            segment.finish()
+            service_cache['stats']['job'][callback.__name__].add(segment)
+            return result
+
+        wrapped.__doc__ = callback.__doc__
+        wrapped.__name__ = callback.__name__
+        wrapped.__module__ = callback.__module__
+        wrapped.__qualname__ = callback.__qualname__
+        wrapped.__annotations__ = callback.__annotations__
+        self._wrapped_callbacks.append(wrapped)
+        return wrapped
+
+    def run_once(self, callback, *args, **kwargs):
+        wrapped = self._wrap(callback, *args, **kwargs)
+        return self.job_queue.run_once(wrapped, *args, **kwargs)
+
+    def run_repeating(self, callback, *args, **kwargs):
+        wrapped = self._wrap(callback)
+        return self.job_queue.run_repeating(wrapped, *args, **kwargs)
+
+    def run_monthly(self, callback, *args, **kwargs):
+        wrapped = self._wrap(callback)
+        return self.job_queue.run_monthly(wrapped, *args, **kwargs)
+
+    def run_daily(self, callback, *args, **kwargs):
+        wrapped = self._wrap(callback)
+        return self.job_queue.run_daily(wrapped, *args, **kwargs)
+
+    def run_custom(self, callback, *args, **kwargs):
+        wrapped = self._wrap(callback)
+        return self.job_queue.run_custom(wrapped, *args, **kwargs)
