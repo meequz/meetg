@@ -7,7 +7,7 @@ from telegram.ext import Handler, Updater
 
 import settings
 from meetg.api_methods import api_method_classes
-from meetg.caching import DateCache, service_cache
+from meetg.caching import DateCache, DateSegment, service_cache
 from meetg.loging import get_logger
 from meetg.storage import ApiTypeModel, get_model_classes
 from meetg.testing import UpdaterMock
@@ -89,7 +89,7 @@ class BaseBot:
         lines = [prefix] + update_reports + model_reports + job_reports
         report = '\n- '.join(lines)
 
-        logger.info('\n%s\n', report)
+        logger.info(report)
         if settings.stats_to:
             self.send_messages(settings.stats_to, report)
 
@@ -97,10 +97,10 @@ class BaseBot:
         """Get gathered info from service_cache['stats']['update'] and format it"""
         update_reports = []
         for update_type, dates in service_cache['stats']['update'].items():
+            dates.clear_before_last_day()
             count = dates.get_day_count()
             line = f"received {count} '{update_type}' updates"
             update_reports.append(line)
-            dates.clear_before_last_day()
         return update_reports
 
     def run(self):
@@ -199,10 +199,11 @@ class _SaveTimeJobQueueWrapper:
     def _wrap(self, callback, *args, **kwargs):
 
         def wrapped(*args, **kwargs):
-            started = get_current_unixtime()
+            service_cache['stats']['job'].init(DateCache)
+            segment = DateSegment()
             result = callback(*args, **kwargs)
-            finished = get_current_unixtime()
-            self._add_to_last_executed(callback.__name__, started, finished)
+            segment.finish()
+            service_cache['stats']['job'][callback.__name__].add(segment)
             return result
 
         wrapped.__doc__ = callback.__doc__
@@ -233,35 +234,12 @@ class _SaveTimeJobQueueWrapper:
         wrapped = self._wrap(callback)
         return self.job_queue.run_custom(wrapped, *args, **kwargs)
 
-    def _add_to_last_executed(self, name, started, finished):
-        if settings.stats_to:
-            self.last_executed[name].append((started, finished))
-            self._clean_old()
-
-    def _clean_old(self):
-        """Clean entries older than 1 day"""
-        day_before = get_unixtime_before_now(24)
-        for job_name, time_segments in self.last_executed.items():
-            for i, time_segment in enumerate(time_segments):
-                if day_before < time_segment[1]:
-                    self.last_executed[job_name] = time_segments[i:]
-                    break
-                elif i == len(time_segments) - 1:  # last segment and no new segments
-                    self.last_executed[job_name] = []
-
     def get_day_reports(self):
-        self._clean_old()
-        day_before = get_unixtime_before_now(24)
+        """Get gathered info from service_cache['stats']['job'] and format it"""
         reports = []
-
-        for job_name, time_segments in self.last_executed.items():
-            total = 0
-            for i, time_segment in enumerate(time_segments):
-                started, finished = time_segment
-                if started < day_before:
-                    started = day_before
-                total += (finished - started)
-            report = f'{job_name} took {total:.4f} seconds total'
-            reports.append(report)
-
+        for job_name, segments in service_cache['stats']['job'].items():
+            segments.clear_before_last_day()
+            duration = segments.get_day_duration()
+            line = f'{job_name} took {duration:.3f} seconds total'
+            reports.append(line)
         return reports

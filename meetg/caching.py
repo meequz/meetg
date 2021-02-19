@@ -44,11 +44,18 @@ class DateSegment(list):
         time = get_current_unixtime()
         self.append(time)
 
+    def get_duration(self):
+        return self[-1] - self[0]
+
 
 class DateCache(list):
     """
     List to easy store and get back date objects: points and segments.
-    Useful to store runtime stats, to later report them
+    Useful to store runtime stats, to later report them.
+    Usage:
+    cache = DateCache()
+    cache.add() - add current Unix time to cache
+    cache.get_day_count() - return number of additions happened for the last 24 hours
     """
     def add(self, obj=None):
         if obj is None:
@@ -72,6 +79,19 @@ class DateCache(list):
     def get_day_count(self):
         last_day = self.get_day()
         return len(last_day)
+
+    def get_day_duration(self):
+        """
+        Method only for Segments. Count duration
+        of date segments added for the last 24 hours
+        """
+        last_day = self.get_day()
+        total = 0
+        for segment in last_day:
+            if not isinstance(segment, DateSegment):
+                raise RuntimeError('get_day_duration() is only applicable for DateSegments')
+            total += segment.get_duration()
+        return total
 
     def clear_before_last_day(self):
         treshold = self._get_day_treshold()
