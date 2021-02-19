@@ -7,6 +7,7 @@ from telegram.ext import Handler, Updater
 
 import settings
 from meetg.api_methods import api_method_classes
+from meetg.caching import DateCache, service_cache
 from meetg.loging import get_logger
 from meetg.storage import ApiTypeModel, get_model_classes
 from meetg.testing import UpdaterMock
@@ -14,6 +15,7 @@ from meetg.factories import MessageUpdateFactory
 from meetg.utils import (
     get_current_unixtime,
     get_unixtime_before_now,
+    get_update_type,
     import_string,
 )
 
@@ -40,8 +42,8 @@ class BaseBot:
         self.username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
-        save_handler = _SaveOnUpdateHandler(self._models)
-        self._handlers = (save_handler,) + self.init_handlers()
+        service_handler = _ServiceHandler(self._models)
+        self._handlers = (service_handler,) + self.init_handlers()
         if not self._is_mock:
             for handler in self._handlers:
                 self.updater.dispatcher.add_handler(handler)
@@ -79,15 +81,27 @@ class BaseBot:
 
     def _job_report_stats(self, context=None):
         """Report bots stats daily"""
-        if not settings.stats_to:
-            return
-
+        update_reports = self._get_update_reports()
         model_reports = [m.get_day_report() for m in self._models]
         job_reports = self._job_queue_wrapper.get_day_reports()
 
         prefix = f'@{self.username} for the last 24 hours:'
-        lines = [prefix] + model_reports + job_reports
-        self.send_messages(settings.stats_to, '\n- '.join(lines))
+        lines = [prefix] + update_reports + model_reports + job_reports
+        report = '\n- '.join(lines)
+
+        logger.info('\n%s\n', report)
+        if settings.stats_to:
+            self.send_messages(settings.stats_to, report)
+
+    def _get_update_reports(self):
+        """Get gathered info from service_cache['stats']['update'] and format it"""
+        update_reports = []
+        for update_type, dates in service_cache['stats']['update'].items():
+            count = dates.get_day_count()
+            line = f"received {count} '{update_type}' updates"
+            update_reports.append(line)
+            dates.clear_before_last_day()
+        return update_reports
 
     def run(self):
         self.updater.start_polling()
@@ -138,15 +152,18 @@ class BaseBot:
             raise NameError(f'API method {attrname} not found')
 
 
-class _SaveOnUpdateHandler(Handler):
+class _ServiceHandler(Handler):
     """
     Fake handler which handles no updates,
     but saves info from each Update for update-related models,
-    if they are enabled
+    if they are enabled, and count stats
     """
     def __init__(self, models):
         super().__init__(lambda: None)
-        # leave only models related to Bot API
+        self.gather_models(models)
+
+    def gather_models(self, models):
+        """Gather models related to Bot API, to save them later"""
         self.models = []
         for model in models:
             if isinstance(model, ApiTypeModel) and model.fields:
@@ -155,6 +172,13 @@ class _SaveOnUpdateHandler(Handler):
     def check_update(self, update_obj):
         """The method triggers by PTB on each received update"""
         self.save(update_obj)
+        self.count(update_obj)
+
+    def count(self, update_obj):
+        """Count stats for a later report"""
+        update_type = get_update_type(update_obj)
+        service_cache['stats']['update'].init(DateCache)
+        service_cache['stats']['update'][update_type].add()
 
     def save(self, update_obj):
         """Save all the fields specified in enabled models"""

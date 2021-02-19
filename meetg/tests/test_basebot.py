@@ -154,10 +154,10 @@ class StatTest(AnyHandlerBotCase):
         stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
         stats_job()
         broadcasted = self.bot.last_method.args['text']
-        assert 'received 1 chats' in broadcasted
-        assert 'received 1 messages' in broadcasted
-        assert 'received 1 updates' in broadcasted
-        assert 'received 1 users' in broadcasted
+        assert 'stored 1 new chats' in broadcasted
+        assert 'stored 1 new messages' in broadcasted
+        assert 'stored 1 new updates' in broadcasted
+        assert 'stored 1 new users' in broadcasted
 
     def test_job_time_in_stats(self):
         self.bot.receive_message('Spam')

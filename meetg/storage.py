@@ -167,7 +167,7 @@ class BaseDefaultModel:
         counted = self._storage.count(pattern)
         return counted
 
-    def _get_created_for_last_day_pattern(self):
+    def _get_created_for_day_query(self):
         pattern = {
             'meetg_created_at': {
                 '$lt': time.time(),
@@ -177,9 +177,9 @@ class BaseDefaultModel:
         return pattern
 
     def get_day_report(self):
-        pattern = self._get_created_for_last_day_pattern()
-        received = self.count(pattern)
-        return f'received {received} {self.name_lower}s'
+        pattern = self._get_created_for_day_query()
+        count = self.count(pattern)
+        return f'stored {count} new {self.name_lower}s'
 
 
 class ApiTypeModel(BaseDefaultModel):
