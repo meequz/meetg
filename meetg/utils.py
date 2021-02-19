@@ -1,7 +1,9 @@
 import random, string, time
 from collections import namedtuple
 from importlib import import_module
+from io import BytesIO
 
+from PIL import Image
 from telegram.messageentity import MessageEntity
 
 
@@ -73,3 +75,11 @@ def get_update_type(update_obj):
     for key in update_obj.to_dict():
         if key != 'update_id':
             return key
+
+
+def get_1px_image():
+    file = BytesIO()
+    image = Image.new('1', size=(1, 1))
+    image.save(file, 'png')
+    file.seek(0)
+    return file

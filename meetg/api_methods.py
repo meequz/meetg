@@ -1,5 +1,4 @@
 import time
-from copy import deepcopy
 
 import telegram
 
@@ -15,6 +14,7 @@ class ApiMethod:
     def __init__(self, tgbot, is_mock=False):
         self.tgbot = tgbot
         self.is_mock = is_mock
+        self.args = None
 
     def easy_call(self, **kwargs):
         """Call the method by simplified params"""
@@ -28,7 +28,7 @@ class ApiMethod:
         Call the method by the exact Telegram API params,
         by keyword arguments only, to easily validate them
         """
-        self.args = deepcopy(kwargs)
+        self.args = kwargs.copy()
         kwargs = self._validate(kwargs)
         if self.is_mock:
             success, response = None, None
@@ -37,6 +37,12 @@ class ApiMethod:
         if success:
             self.log(self.args)
         return success, response
+
+    def __str__(self):
+        if self.args:
+            return f'{self.name}: {self.args}'
+        else:
+            return f'{self.name}: no args'
 
     def _call(self, kwargs):
         """

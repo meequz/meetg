@@ -94,7 +94,7 @@ class BaseBot:
 
     def run(self):
         self.updater.start_polling()
-        logger.info('%s started', self.username)
+        logger.info('@%s started', self.username)
         self.updater.idle()
 
     def send_messages(self, chat_ids, text, reply_to=None, markup=None, html=None, preview=False):
@@ -105,7 +105,7 @@ class BaseBot:
             )
         logger.info('Message broadcasted: %s', repr(text[:79]))
 
-    def receive_message(self, text, **kwargs):
+    def receive_message(self, text='', **kwargs):
         """
         Simulates receiving Update with 'message' by the bot in tests
         """

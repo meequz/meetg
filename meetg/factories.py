@@ -4,7 +4,7 @@ Help generate various Update objects used in testing
 import copy, datetime
 
 from meetg.api_types import (
-    ApiType, ChatApiType, MessageApiType, UpdateApiType, UserApiType,
+    ApiType, ChatApiType, MessageApiType, PhotoSizeApiType, UpdateApiType, UserApiType,
 )
 from meetg.loging import get_logger
 from meetg.utils import parse_entities
@@ -80,6 +80,20 @@ class UserFactory(Factory):
         return defaults
 
 
+class PhotoSizeFactory(Factory):
+    api_type = PhotoSizeApiType
+
+    def get_defaults(self):
+        defaults = {
+            'file_id': 'AgACAg',
+            'file_unique_id': 'AQAD86E',
+            'width': 1,
+            'height': 1,
+            'file_size': 1,
+        }
+        return defaults
+
+
 class MessageFactory(Factory):
     api_type = MessageApiType
 
@@ -100,6 +114,7 @@ class MessageFactory(Factory):
 
     def create(self, **kwargs):
         chat_args = self._filter_prefix(kwargs, 'chat__')
+        photo_size_args = self._filter_prefix(kwargs, 'photo_size__')
         from_user_args = self._filter_prefix(kwargs, 'from__')
         if 'id' in chat_args and chat_args['id'] > 0 and 'id' not in from_user_args:
             from_user_args['id'] = chat_args['id']
@@ -108,6 +123,8 @@ class MessageFactory(Factory):
         args['chat'] = ChatFactory(self.tgbot).create(**chat_args)
         args['from_user'] = UserFactory(self.tgbot).create(**from_user_args)
         args['entities'] = parse_entities(args['text'])
+        if photo_size_args:
+            args['photo'] = [PhotoSizeFactory(self.tgbot).create(**photo_size_args)]
 
         obj = self.api_type.ptb_class(**args)
         return obj

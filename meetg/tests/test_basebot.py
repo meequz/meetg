@@ -1,4 +1,5 @@
 import logging
+from io import BytesIO
 
 from parameterized import parameterized
 
@@ -8,6 +9,7 @@ from meetg.storage import (
     DefaultChatModel, DefaultMessageModel, DefaultUpdateModel, DefaultUserModel
 )
 from meetg.tests.base import AnyHandlerBot, AnyHandlerBotCase, MeetgBaseTestCase
+from meetg.utils import get_1px_image
 
 
 class NoHandlerBot(BaseBot):
@@ -323,3 +325,12 @@ class AnswerTest(AnyHandlerBotCase):
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_method.args['chat_id'] == 1
         assert self.bot.last_method.args['text'] == 'bot sends this'
+
+    def test_image_answer_to_image(self):
+        self.bot.receive_message(photo__file_id='BfaqFvb')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_method.args['text'] == 'Update received: message'
+
+        self.bot.send_photo(1, photo=get_1px_image())
+        assert self.bot.last_method.name == 'send_photo'
+        assert self.bot.last_method.args['photo'].__class__ == BytesIO
