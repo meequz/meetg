@@ -81,9 +81,9 @@ class BaseBot:
 
     def _job_report_stats(self, context=None):
         """Report bots stats daily"""
+        job_reports = self._get_job_reports()
         update_reports = self._get_update_reports()
         model_reports = [m.get_day_report() for m in self._models]
-        job_reports = self._job_queue_wrapper.get_day_reports()
 
         prefix = f'@{self.username} for the last 24 hours:'
         lines = [prefix] + update_reports + model_reports + job_reports
@@ -92,6 +92,16 @@ class BaseBot:
         logger.info(report)
         if settings.stats_to:
             self.send_messages(settings.stats_to, report)
+
+    def _get_job_reports(self):
+        """Get gathered info from service_cache['stats']['job'] and format it"""
+        reports = []
+        for job_name, segments in service_cache['stats']['job'].items():
+            segments.clear_before_last_day()
+            duration = segments.get_day_duration()
+            line = f'{job_name} took {duration:.3f} seconds total'
+            reports.append(line)
+        return reports
 
     def _get_update_reports(self):
         """Get gathered info from service_cache['stats']['update'] and format it"""

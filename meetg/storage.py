@@ -187,11 +187,17 @@ class ApiTypeModel(BaseDefaultModel):
 
     def _log_create(self, data: dict):
         id_field = self.api_type.id_field
-        logger.info('Storage: %s %s created', self.name, data[id_field])
+        if id_field in data:
+            logger.info('Storage: %s %s created', self.name, data[id_field])
+        else:
+            logger.info('Storage: %s created', self.name)
 
     def _log_update(self, data: dict):
         id_field = self.api_type.id_field
-        logger.info('Storage: %s %s updated', self.name, data[id_field])
+        if id_field in data:
+            logger.info('Storage: %s %s updated', self.name, data[id_field])
+        else:
+            logger.info('Storage: %s updated', self.name)
 
     def get_ptb_obj(self, update_obj):
         raise NotImplementedError

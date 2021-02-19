@@ -52,7 +52,7 @@ class SaveObjTest(MeetgBaseTestCase):
     @parameterized.expand(model_names)
     def test_no_save(self, model_name):
         """
-        Ensure the bot doesn't save an object in storage
+        Ensure the bot doesn't save an object in storage if 'fields' are empty
         """
         # apply model class with fields = ()
         no_save_model_class = f'meetg.tests.test_basebot.NoSave{model_name}Model'
@@ -80,6 +80,109 @@ class SaveObjTest(MeetgBaseTestCase):
         assert not model.find()
         bot.receive_message('Spam')
         assert model.find()
+
+
+class UpdateModelWithOnlyUpdateId(DefaultUpdateModel):
+    fields = ('update_id', )
+
+
+class UpdateModelWithOnlyMessage(DefaultUpdateModel):
+    fields = ('message', )
+
+
+class MessageModelWithOnlyMessageId(DefaultMessageModel):
+    fields = ('message_id', )
+
+
+class MessageModelWithOnlyDate(DefaultMessageModel):
+    fields = ('date', )
+
+
+class UserModelWithOnlyId(DefaultUserModel):
+    fields = ('id', )
+
+
+class UserModelWithOnlyFirstName(DefaultUserModel):
+    fields = ('first_name', )
+
+
+class ChatModelWithOnlyId(DefaultChatModel):
+    fields = ('id', )
+
+
+class ChatModelWithOnlyType(DefaultChatModel):
+    fields = ('type', )
+
+
+class SaveOnlySpecifiedFields(AnyHandlerBotCase):
+
+    def test_save_update_with_only_update_id(self):
+        settings.update_model_class = f'meetg.tests.test_basebot.UpdateModelWithOnlyUpdateId'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_update = bot.update_model.find_one()
+        assert 'update_id' in db_update
+        assert 'message' not in db_update
+
+    def test_save_update_with_only_message(self):
+        settings.update_model_class = f'meetg.tests.test_basebot.UpdateModelWithOnlyMessage'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_update = bot.update_model.find_one()
+        assert 'message' in db_update
+        assert 'update_id' not in db_update
+
+    def test_save_message_with_only_message_id(self):
+        settings.message_model_class = f'meetg.tests.test_basebot.MessageModelWithOnlyMessageId'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_message = bot.message_model.find_one()
+        assert 'message_id' in db_message
+        assert 'date' not in db_message
+        assert 'chat' not in db_message
+
+    def test_save_message_with_only_date(self):
+        settings.message_model_class = f'meetg.tests.test_basebot.MessageModelWithOnlyDate'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_message = bot.message_model.find_one()
+        assert 'date' in db_message
+        assert 'message_id' not in db_message
+        assert 'chat' not in db_message
+
+    def test_save_user_with_only_id(self):
+        settings.user_model_class = f'meetg.tests.test_basebot.UserModelWithOnlyId'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_user = bot.user_model.find_one()
+        assert 'id' in db_user
+        assert 'is_bot' not in db_user
+        assert 'first_name' not in db_user
+
+    def test_save_user_with_only_first_name(self):
+        settings.user_model_class = f'meetg.tests.test_basebot.UserModelWithOnlyFirstName'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_user = bot.user_model.find_one()
+        assert 'first_name' in db_user
+        assert 'id' not in db_user
+        assert 'is_bot' not in db_user
+
+    def test_save_chat_with_only_id(self):
+        settings.chat_model_class = f'meetg.tests.test_basebot.ChatModelWithOnlyId'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_user = bot.chat_model.find_one()
+        assert 'id' in db_user
+        assert 'type' not in db_user
+
+    def test_save_chat_with_only_type(self):
+        settings.chat_model_class = f'meetg.tests.test_basebot.ChatModelWithOnlyType'
+        bot = AnyHandlerBot(mock=True)
+        bot.receive_message('Spam')
+        db_user = bot.chat_model.find_one()
+        assert 'type' in db_user
+        assert 'id' not in db_user
 
 
 class UpdateDbObjTest(AnyHandlerBotCase):
