@@ -1,4 +1,5 @@
 parameterized
+pillow
 pymongo
 python-telegram-bot
 pytz
