@@ -85,8 +85,8 @@ class PhotoSizeFactory(Factory):
 
     def get_defaults(self):
         defaults = {
-            'file_id': 'AgACAg',
-            'file_unique_id': 'AQAD86E',
+            'file_id': generate_random_string(98),
+            'file_unique_id': generate_random_string(19),
             'width': 1,
             'height': 1,
             'file_size': 1,
