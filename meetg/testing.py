@@ -47,6 +47,7 @@ class BotTestCase(BaseTestCase):
 
 
 class JobQueueMock:
+    """A mock to use in tests"""
 
     def run_daily(self, callback, period):
         pass

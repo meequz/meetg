@@ -28,9 +28,8 @@ class TestCommand(Command):
 
 setup(
     name='meetg',
-    version='0.9.2',
+    version='0.9.3',
     packages=['meetg'],
-    scripts=['bin/meetg-admin'],
     description='Framework for creating Telegram bots',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -52,5 +51,10 @@ setup(
     python_requires='>=3.6',
     cmdclass={
         'test': TestCommand,
+    },
+    entry_points={
+        'console_scripts': [
+            'meetg-admin = meetg.scripts:admin',
+        ],
     },
 )

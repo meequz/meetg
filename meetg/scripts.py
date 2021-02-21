@@ -103,8 +103,7 @@ class ReplyTest(BotTestCase):
 PROJECT_CREATED = '''
 Project {name} created.
 
-Now cd to the project directory, fill at least tg_api_token var in settings.py,
-and you are ready to go.
+Now fill at least tg_api_token var in {name_lc}/settings.py, and you are ready to go.
 
 To run: python3 manage.py run
 To run tests: python3 manage.py test
@@ -178,18 +177,15 @@ def start_project(name, path):
     manage_py_path = os.path.join(dir_path, 'manage.py')
     create_file(manage_py_path, MANAGE_PY)
 
+    print(PROJECT_CREATED.format(name=name, name_lc=name_lc))
 
-def main():
+
+def admin():
     path = os.getcwd()
     args = sys.argv
 
-    if len(args) > 2 and args[1] == 'startproject':
+    if len(args) > 2 and args[1] == 'start':
         name = args[2]
         start_project(name, path)
-        print(PROJECT_CREATED.format(name=name))
     else:
-        print('Usage: meetg-admin startproject my_project')
-
-
-if __name__ == '__main__':
-    main()
+        print('Usage: meetg-admin start my_project')
