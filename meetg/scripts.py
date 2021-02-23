@@ -9,7 +9,7 @@ from telegram.ext import Filters, Updater
 
 
 # Example of your bot
-class {name_cc}Bot(BaseBot):
+class {name_cc}(BaseBot):
 
     def init_handlers(self):
         # Define handlers here. See available handlers in the PTB docs:
@@ -73,7 +73,7 @@ tg_api_token = ''
 db_name = '{name_cc_uncap}DB'
 db_name_test = '{name_cc_uncap}TestDB'
 
-bot_class = 'bot.main.{name_cc}Bot'
+bot_class = 'bot.main.{name_cc}'
 
 stats_to = ()  # Telegram IDs where to report bot stats
 '''
@@ -149,6 +149,8 @@ def create_file(path, content):
 
 
 def start_project(name, path):
+    if not name.lower().endswith('bot'):
+        name += '_bot'
     name_cc = to_camelcase(name)
     name_lc = to_lowercase(name)
     name_cc_uncap = name_cc[0].lower() + name_cc[1:]

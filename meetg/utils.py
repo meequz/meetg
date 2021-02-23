@@ -14,7 +14,7 @@ def generate_random_string(length=22):
     return random_string
 
 
-def message_contain(msg, words):
+def message_contains(msg, words):
     msg_words = msg.lower().split()
     for msg_word in msg_words:
         for word in words:
@@ -22,7 +22,7 @@ def message_contain(msg, words):
                 return True
 
 
-def message_starts(msg, words):
+def message_startswith(msg, words):
     msg = msg.lower()
     for word in words:
         if msg.startswith(word):
