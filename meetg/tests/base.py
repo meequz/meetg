@@ -19,8 +19,7 @@ class AnyHandlerBot(BaseBot):
 
     def reply_any(self, update_obj, context):
         chat_id = update_obj.effective_chat.id
-        update_type = get_update_type(update_obj)
-        self.send_message(chat_id, f'Update received: {update_type}')
+        self.send_message(chat_id, update_obj.to_json())
 
 
 class AnyHandlerBotCase(MeetgBaseTestCase):
