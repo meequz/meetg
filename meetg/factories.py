@@ -4,8 +4,8 @@ Help generate various Update objects used in testing
 import datetime, random
 
 from meetg.api_types import (
-    AnimationApiType, ChatApiType, DocumentApiType, MessageApiType, PhotoSizeApiType,
-    StickerApiType, UpdateApiType, UserApiType,
+    AnimationApiType, AudioApiType, ChatApiType, ContactApiType, DocumentApiType, LocationApiType,
+    MessageApiType, PhotoSizeApiType, StickerApiType, UpdateApiType, UserApiType, VideoApiType,
 )
 from meetg.loging import get_logger
 from meetg.utils import generate_random_string, parse_entities
@@ -52,6 +52,13 @@ class Factory:
     def create(self, **kwargs):
         args = self._create_args(kwargs)
         obj = self.api_type.ptb_class(**args)
+        return obj
+
+    def prefix_create(self, prefix, kwargs, force=False):
+        args = self._filter_prefix(kwargs, prefix)
+        obj = None
+        if args or force:
+            obj = self.create(**args)
         return obj
 
 
@@ -139,6 +146,48 @@ class DocumentFactory(FileFactory):
     api_type = DocumentApiType
 
 
+class AudioFactory(FileFactory):
+    api_type = AudioApiType
+
+    def get_defaults(self):
+        defaults = super().get_defaults()
+        defaults['duration'] = random.randint(1, 500)
+        return defaults
+
+
+class VideoFactory(FileFactory):
+    api_type = VideoApiType
+
+    def get_defaults(self):
+        defaults = super().get_defaults()
+        defaults['width'] = random.randint(1, 500)
+        defaults['height'] = random.randint(1, 500)
+        defaults['duration'] = random.randint(1, 500)
+        return defaults
+
+
+class ContactFactory(Factory):
+    api_type = ContactApiType
+
+    def get_defaults(self):
+        defaults = {
+            'phone_number': '+' + str(random.randint(11111111111, 999999999999)),
+            'first_name': 'Palin',
+        }
+        return defaults
+
+
+class LocationFactory(Factory):
+    api_type = LocationApiType
+
+    def get_defaults(self):
+        defaults = {
+            'longitude': float(random.randint(-180, 180)),
+            'latitude': float(random.randint(-90, 90)),
+        }
+        return defaults
+
+
 class MessageFactory(Factory):
     api_type = MessageApiType
 
@@ -149,7 +198,6 @@ class MessageFactory(Factory):
     def get_defaults(self):
         defaults = {
             'message_id': get_next_int(),
-            'text': 'Spam',
             'date': datetime.datetime.now(),
             'bot': self.tgbot,
         }
@@ -158,31 +206,28 @@ class MessageFactory(Factory):
         return defaults
 
     def create(self, **kwargs):
-        chat_args = self._filter_prefix(kwargs, 'chat__')
-        from_user_args = self._filter_prefix(kwargs, 'from__')
-        photo_size_args = self._filter_prefix(kwargs, 'photo__')
-        document_args = self._filter_prefix(kwargs, 'document__')
-        animation_args = self._filter_prefix(kwargs, 'animation__')
-        sticker_args = self._filter_prefix(kwargs, 'sticker__')
-
-        if 'id' in chat_args and chat_args['id'] > 0 and 'id' not in from_user_args:
-            from_user_args['id'] = chat_args['id']
+        chat__id = kwargs.get('chat__id', 0)
+        if chat__id > 0 and 'from__id' not in kwargs:
+            kwargs['from__id'] = chat__id
 
         args = self._create_args(kwargs)
-        args['chat'] = ChatFactory(self.tgbot).create(**chat_args)
-        args['from_user'] = UserFactory(self.tgbot).create(**from_user_args)
         args['entities'] = parse_entities(args['text'])
+        args['chat'] = ChatFactory(self.tgbot).prefix_create('chat__', kwargs, force=True)
+        args['from_user'] = UserFactory(self.tgbot).prefix_create('from__', kwargs, force=True)
+        args['document'] = DocumentFactory(self.tgbot).prefix_create('document__', kwargs)
+        args['sticker'] = StickerFactory(self.tgbot).prefix_create('sticker__', kwargs)
+        args['audio'] = AudioFactory(self.tgbot).prefix_create('audio__', kwargs)
+        args['video'] = VideoFactory(self.tgbot).prefix_create('video__', kwargs)
+        args['contact'] = ContactFactory(self.tgbot).prefix_create('contact__', kwargs)
+        args['location'] = LocationFactory(self.tgbot).prefix_create('location__', kwargs)
 
-        if photo_size_args:
-            args['photo'] = [PhotoSizeFactory(self.tgbot).create(**photo_size_args)]
-        if document_args:
-            args['document'] = DocumentFactory(self.tgbot).create(**document_args)
-        if animation_args:
-            args['animation'] = AnimationFactory(self.tgbot).create(**animation_args)
-            document_args = args['animation'].to_dict()
-            args['document'] = DocumentFactory(self.tgbot).create(**document_args)
-        if sticker_args:
-            args['sticker'] = StickerFactory(self.tgbot).create(**sticker_args)
+        photo = PhotoSizeFactory(self.tgbot).prefix_create('photo__', kwargs)
+        if photo:
+            args['photo'] = [photo]
+
+        args['animation'] = AnimationFactory(self.tgbot).prefix_create('animation__', kwargs)
+        if args['animation']:
+            args['document'] = DocumentFactory(self.tgbot).create(**args['animation'].to_dict())
 
         obj = self.api_type.ptb_class(**args)
         return obj

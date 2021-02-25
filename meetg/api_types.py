@@ -2,12 +2,16 @@
 Universal classes describing Telegram Bot API types.
 Useful in many places: storage, factories, etc
 """
-from telegram import Animation, Chat, Document, Message, PhotoSize, Sticker, Update, User
+from telegram import (
+    Animation, Audio, Chat, Contact, Document, Location, Message, PhotoSize, Sticker, Update, User,
+    Video,
+)
 
 
 class ApiType:
     """Base class for any API type class"""
     ptb_class = None
+    id_field = None
 
     def __init__(self, data):
         self.validated_data = self.validate(data)
@@ -128,4 +132,51 @@ class StickerApiType(ApiType):
         'file_id', 'file_unique_id', 'width', 'height', 'is_animated',
         # optional
         'thumb', 'emoji', 'set_name', 'mask_position', 'file_size',
+    )
+
+
+class AudioApiType(ApiType):
+    name = 'Audio'
+    ptb_class = Audio
+    id_field = 'file_unique_id'
+    fields = (
+        # required
+        'file_id', 'file_unique_id', 'duration',
+        # optional
+        'performer', 'title', 'file_name', 'mime_type', 'file_size', 'thumb',
+    )
+
+
+class VideoApiType(ApiType):
+    name = 'Video'
+    ptb_class = Video
+    id_field = 'file_unique_id'
+    fields = (
+        # required
+        'file_id', 'file_unique_id', 'width', 'height', 'duration',
+        # optional
+        'thumb', 'file_name', 'mime_type', 'file_size',
+    )
+
+
+class ContactApiType(ApiType):
+    name = 'Contact'
+    ptb_class = Contact
+    id_field = 'phone_number'
+    fields = (
+        # required
+        'phone_number', 'first_name',
+        # optional
+        'last_name', 'user_id', 'vcard',
+    )
+
+
+class LocationApiType(ApiType):
+    name = 'Location'
+    ptb_class = Location
+    fields = (
+        # required
+        'longitude', 'latitude',
+        # optional
+        'horizontal_accuracy', 'live_period', 'heading', 'proximity_alert_radius',
     )

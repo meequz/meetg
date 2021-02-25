@@ -347,29 +347,45 @@ class ReceiveTest(AnyHandlerBotCase):
     def test_receive_image(self):
         self.bot.receive_message(photo__file_id='BfaqFvb')
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_update.effective_message.text == ''
         assert self.bot.last_update.effective_message.photo[0].file_id == 'BfaqFvb'
 
     def test_receive_gif(self):
         self.bot.receive_message(document__mime_type='image/gif')
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_update.effective_message.text == ''
         assert self.bot.last_update.effective_message.document.mime_type == 'image/gif'
 
     def test_receive_mp4_animation(self):
         self.bot.receive_message(animation__mime_type='video/mp4')
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_update.effective_message.text == ''
         assert self.bot.last_update.effective_message.animation.mime_type == 'video/mp4'
 
     def test_receive_animated_sticker(self):
         self.bot.receive_message(sticker__is_animated=True)
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_update.effective_message.text == ''
         assert self.bot.last_update.effective_message.sticker.is_animated == True
 
     def test_receive_not_animated_sticker(self):
         self.bot.receive_message(sticker__is_animated=False)
         assert self.bot.last_method.name == 'send_message'
-        assert self.bot.last_update.effective_message.text == ''
         assert self.bot.last_update.effective_message.sticker.is_animated == False
+
+    def test_receive_audio(self):
+        self.bot.receive_message(audio__duration=15)
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.audio.duration == 15
+
+    def test_receive_video(self):
+        self.bot.receive_message(video__duration=21)
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.video.duration == 21
+
+    def test_receive_contact(self):
+        self.bot.receive_message(contact__phone_number='+123456789')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.contact.phone_number == '+123456789'
+
+    def test_receive_location(self):
+        self.bot.receive_message(location__longitude=-36, location__latitude=45)
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.location.longitude == -36
+        assert self.bot.last_update.effective_message.location.latitude == 45
