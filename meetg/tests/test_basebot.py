@@ -1,4 +1,4 @@
-import json, logging
+import logging
 from io import BytesIO
 
 from parameterized import parameterized
@@ -315,48 +315,49 @@ class StatTest(AnyHandlerBotCase):
 
 class AnswerTest(AnyHandlerBotCase):
 
-    def test_text_answer_to_text(self):
-        self.bot.receive_message('Spam')
-        received_update = json.loads(self.bot.last_method.args['text'])
-        assert self.bot.last_method.name == 'send_message'
-        assert received_update['message']['text'] == 'Spam'
-
-    def test_text_answer(self):
+    def test_answer_text(self):
         self.bot.send_message(1, 'bot sends this')
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_method.args['chat_id'] == 1
         assert self.bot.last_method.args['text'] == 'bot sends this'
 
-    def test_image_answer_to_image(self):
-        self.bot.receive_message(photo__file_id='BfaqFvb')
-        received_update = json.loads(self.bot.last_method.args['text'])
-        assert self.bot.last_method.name == 'send_message'
-        assert received_update['message']['text'] == ''
-        assert received_update['message']['photo'][0]['file_id'] == 'BfaqFvb'
-
+    def test_answer_image(self):
         self.bot.send_photo(1, photo=get_sample('png_2px.png'))
         assert self.bot.last_method.name == 'send_photo'
         assert isinstance(self.bot.last_method.args['photo'], bytes)
 
-    def test_gif_answer_to_gif(self):
-        self.bot.receive_message(document__mime_type='image/gif')
-        received_update = json.loads(self.bot.last_method.args['text'])
-        assert self.bot.last_method.name == 'send_message'
-        assert received_update['message']['text'] == ''
-        assert received_update['message']['document']['mime_type'] == 'image/gif'
-
+    def test_answer_gif(self):
         self.bot.send_document(1, document=get_sample('gif_animation.gif'))
         assert self.bot.last_method.name == 'send_document'
         assert isinstance(self.bot.last_method.args['document'], bytes)
 
-    def test_mp4_animation_answer_to_mp4_animation(self):
-        self.bot.receive_message(animation__mime_type='video/mp4')
-        received_update = json.loads(self.bot.last_method.args['text'])
-        assert self.bot.last_method.name == 'send_message'
-        assert received_update['message']['text'] == ''
-        assert received_update['message']['document']['mime_type'] == 'video/mp4'
-        assert received_update['message']['animation']['mime_type'] == 'video/mp4'
-
+    def test_answer_mp4_animation(self):
         self.bot.send_animation(1, animation=get_sample('no_sound.mp4'))
         assert self.bot.last_method.name == 'send_animation'
         assert isinstance(self.bot.last_method.args['animation'], bytes)
+
+
+class ReceiveTest(AnyHandlerBotCase):
+
+    def test_receive_text(self):
+        self.bot.receive_message('Spam')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.text == 'Spam'
+
+    def test_receive_image(self):
+        self.bot.receive_message(photo__file_id='BfaqFvb')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.text == ''
+        assert self.bot.last_update.effective_message.photo[0].file_id == 'BfaqFvb'
+
+    def test_receive_gif(self):
+        self.bot.receive_message(document__mime_type='image/gif')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.text == ''
+        assert self.bot.last_update.effective_message.document.mime_type == 'image/gif'
+
+    def test_receive_mp4_animation(self):
+        self.bot.receive_message(animation__mime_type='video/mp4')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.text == ''
+        assert self.bot.last_update.effective_message.animation.mime_type == 'video/mp4'

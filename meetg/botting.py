@@ -32,6 +32,7 @@ class BaseBot:
         self._init_handlers()
         self._init_jobs()
         self.last_method = None
+        self.last_update = None
 
     def _init_updater(self):
         """Init PTB updater"""
@@ -41,7 +42,7 @@ class BaseBot:
         self.username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
-        service_handler = _ServiceHandler(self._models)
+        service_handler = _ServiceHandler(self._models, self)
         self._handlers = (service_handler,) + self.init_handlers()
         if not self._is_mock:
             for handler in self._handlers:
@@ -151,9 +152,10 @@ class _ServiceHandler(Handler):
     but saves info from each Update for update-related models,
     if they are enabled, and count stats
     """
-    def __init__(self, models):
+    def __init__(self, models, bot):
         super().__init__(lambda: None)
         self.gather_models(models)
+        self.bot = bot
 
     def gather_models(self, models):
         """Gather models related to Bot API, to save them later"""
@@ -164,6 +166,7 @@ class _ServiceHandler(Handler):
 
     def check_update(self, update_obj):
         """The method triggers by PTB on each received update"""
+        self.bot.last_update = update_obj
         self.save(update_obj)
         self.count(update_obj)
 
