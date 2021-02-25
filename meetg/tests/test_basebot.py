@@ -334,3 +334,21 @@ class AnswerTest(AnyHandlerBotCase):
         self.bot.send_photo(1, photo=get_sample('png_2px.png'))
         assert self.bot.last_method.name == 'send_photo'
         assert isinstance(self.bot.last_method.args['photo'], bytes)
+
+    def test_gif_answer_to_gif(self):
+        self.bot.receive_message(document__mime_type='image/gif')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_method.args['text'] == 'Update received: message'
+
+        self.bot.send_document(1, document=get_sample('gif_animation.gif'))
+        assert self.bot.last_method.name == 'send_document'
+        assert isinstance(self.bot.last_method.args['document'], bytes)
+
+    def test_mp4_animation_answer_to_mp4_animation(self):
+        self.bot.receive_message(animation__mime_type='video/mp4')
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_method.args['text'] == 'Update received: message'
+
+        self.bot.send_animation(1, animation=get_sample('no_sound.mp4'))
+        assert self.bot.last_method.name == 'send_animation'
+        assert isinstance(self.bot.last_method.args['animation'], bytes)

@@ -247,10 +247,39 @@ class SendDocumentMethod(ApiMethod):
         logger.info('Send document to chat %s', chat_id)
 
 
+class SendAnimationMethod(ApiMethod):
+    name = 'send_animation'
+    parameters = (
+        # required
+        'chat_id', 'animation',
+        # optional
+        'duration', 'width', 'height', 'thumb', 'caption', 'parse_mode', 'caption_entities',
+        'disable_notification', 'reply_to_message_id', 'allow_sending_without_reply',
+        'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, animation, duration=None, width=None, thumb=None, height=None,
+            caption=None, reply_to=None, markup=None, html=None,
+        ):
+        parse_mode = telegram.ParseMode.HTML if html else None
+        success, response = self.call(
+            chat_id=chat_id, animation=animation, duration=duration, width=width, height=height,
+            thumb=thumb, caption=caption, reply_to_message_id=reply_to, reply_markup=markup,
+            parse_mode=parse_mode,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        logger.info('Send animation to chat %s', chat_id)
+
+
 api_method_classes = {
     'send_message': SendMessageMethod,
     'send_photo': SendPhotoMethod,
     'send_document': SendDocumentMethod,
+    'send_animation': SendAnimationMethod,
     'edit_message_text': EditMessageTextMethod,
     'delete_message': DeleteMessageMethod,
     'forward_message': ForwardMessageMethod,

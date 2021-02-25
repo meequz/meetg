@@ -1,13 +1,14 @@
 """
 Help generate various Update objects used in testing
 """
-import copy, datetime
+import datetime, random
 
 from meetg.api_types import (
-    ApiType, ChatApiType, MessageApiType, PhotoSizeApiType, UpdateApiType, UserApiType,
+    AnimationApiType, ChatApiType, DocumentApiType, MessageApiType, PhotoSizeApiType,
+    UpdateApiType, UserApiType,
 )
 from meetg.loging import get_logger
-from meetg.utils import parse_entities
+from meetg.utils import generate_random_string, parse_entities
 
 
 logger = get_logger()
@@ -26,8 +27,13 @@ class Factory:
     """
     Base class for any factory of a PTB object
     """
+    api_type = None
+
     def __init__(self, tgbot):
         self.tgbot = tgbot
+
+    def get_defaults(self):
+        return {}
 
     def _filter_prefix(self, data, prefix):
         filtered = {}
@@ -80,18 +86,45 @@ class UserFactory(Factory):
         return defaults
 
 
-class PhotoSizeFactory(Factory):
-    api_type = PhotoSizeApiType
-
+class FileFactory(Factory):
+    """
+    Base factory for all the file-like Telegram types
+    """
     def get_defaults(self):
         defaults = {
             'file_id': generate_random_string(98),
             'file_unique_id': generate_random_string(19),
-            'width': 1,
-            'height': 1,
-            'file_size': 1,
+            'file_size': random.randint(1, 999999),
         }
         return defaults
+
+
+class PhotoSizeFactory(FileFactory):
+    api_type = PhotoSizeApiType
+
+    def get_defaults(self):
+        defaults = super().get_defaults()
+        defaults['width'] = random.randint(1, 500)
+        defaults['height'] = random.randint(1, 500)
+        return defaults
+
+
+class AnimationFactory(FileFactory):
+    api_type = AnimationApiType
+
+    def get_defaults(self):
+        defaults = super().get_defaults()
+        defaults['duration'] = random.randint(1, 22)
+        defaults['thumb'] = PhotoSizeFactory(self.tgbot).create()
+        defaults['width'] = random.randint(1, 500)
+        defaults['height'] = random.randint(1, 500)
+        defaults['file_name'] = f'video_as_animation_{get_next_int()}.mp4'
+        defaults['mime_type'] = 'video/mp4'
+        return defaults
+
+
+class DocumentFactory(FileFactory):
+    api_type = DocumentApiType
 
 
 class MessageFactory(Factory):
@@ -114,8 +147,11 @@ class MessageFactory(Factory):
 
     def create(self, **kwargs):
         chat_args = self._filter_prefix(kwargs, 'chat__')
-        photo_size_args = self._filter_prefix(kwargs, 'photo_size__')
         from_user_args = self._filter_prefix(kwargs, 'from__')
+        photo_size_args = self._filter_prefix(kwargs, 'photo__')
+        document_args = self._filter_prefix(kwargs, 'document__')
+        animation_args = self._filter_prefix(kwargs, 'animation__')
+
         if 'id' in chat_args and chat_args['id'] > 0 and 'id' not in from_user_args:
             from_user_args['id'] = chat_args['id']
 
@@ -123,8 +159,15 @@ class MessageFactory(Factory):
         args['chat'] = ChatFactory(self.tgbot).create(**chat_args)
         args['from_user'] = UserFactory(self.tgbot).create(**from_user_args)
         args['entities'] = parse_entities(args['text'])
+
         if photo_size_args:
             args['photo'] = [PhotoSizeFactory(self.tgbot).create(**photo_size_args)]
+        if document_args:
+            args['document'] = DocumentFactory(self.tgbot).create(**document_args)
+        if animation_args:
+            args['animation'] = AnimationFactory(self.tgbot).create(**animation_args)
+            document_args = args['animation'].to_dict()
+            args['document'] = DocumentFactory(self.tgbot).create(**document_args)
 
         obj = self.api_type.ptb_class(**args)
         return obj
