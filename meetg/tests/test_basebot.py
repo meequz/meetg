@@ -361,3 +361,15 @@ class ReceiveTest(AnyHandlerBotCase):
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_update.effective_message.text == ''
         assert self.bot.last_update.effective_message.animation.mime_type == 'video/mp4'
+
+    def test_receive_animated_sticker(self):
+        self.bot.receive_message(sticker__is_animated=True)
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.text == ''
+        assert self.bot.last_update.effective_message.sticker.is_animated == True
+
+    def test_receive_not_animated_sticker(self):
+        self.bot.receive_message(sticker__is_animated=False)
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_update.effective_message.text == ''
+        assert self.bot.last_update.effective_message.sticker.is_animated == False

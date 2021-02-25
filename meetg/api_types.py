@@ -2,7 +2,7 @@
 Universal classes describing Telegram Bot API types.
 Useful in many places: storage, factories, etc
 """
-from telegram import Animation, Chat, Document, Message, PhotoSize, Update, User
+from telegram import Animation, Chat, Document, Message, PhotoSize, Sticker, Update, User
 
 
 class ApiType:
@@ -116,4 +116,16 @@ class DocumentApiType(ApiType):
         'file_id', 'file_unique_id',
         # optional
         'thumb', 'file_name', 'mime_type', 'file_size',
+    )
+
+
+class StickerApiType(ApiType):
+    name = 'Sticker'
+    ptb_class = Sticker
+    id_field = 'file_unique_id'
+    fields = (
+        # required
+        'file_id', 'file_unique_id', 'width', 'height', 'is_animated',
+        # optional
+        'thumb', 'emoji', 'set_name', 'mask_position', 'file_size',
     )

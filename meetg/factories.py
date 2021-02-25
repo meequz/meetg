@@ -5,7 +5,7 @@ import datetime, random
 
 from meetg.api_types import (
     AnimationApiType, ChatApiType, DocumentApiType, MessageApiType, PhotoSizeApiType,
-    UpdateApiType, UserApiType,
+    StickerApiType, UpdateApiType, UserApiType,
 )
 from meetg.loging import get_logger
 from meetg.utils import generate_random_string, parse_entities
@@ -123,6 +123,18 @@ class AnimationFactory(FileFactory):
         return defaults
 
 
+class StickerFactory(FileFactory):
+    api_type = StickerApiType
+
+    def get_defaults(self):
+        defaults = super().get_defaults()
+        defaults['thumb'] = PhotoSizeFactory(self.tgbot).create()
+        defaults['width'] = random.randint(1, 500)
+        defaults['height'] = random.randint(1, 500)
+        defaults['is_animated'] = False
+        return defaults
+
+
 class DocumentFactory(FileFactory):
     api_type = DocumentApiType
 
@@ -151,6 +163,7 @@ class MessageFactory(Factory):
         photo_size_args = self._filter_prefix(kwargs, 'photo__')
         document_args = self._filter_prefix(kwargs, 'document__')
         animation_args = self._filter_prefix(kwargs, 'animation__')
+        sticker_args = self._filter_prefix(kwargs, 'sticker__')
 
         if 'id' in chat_args and chat_args['id'] > 0 and 'id' not in from_user_args:
             from_user_args['id'] = chat_args['id']
@@ -168,6 +181,8 @@ class MessageFactory(Factory):
             args['animation'] = AnimationFactory(self.tgbot).create(**animation_args)
             document_args = args['animation'].to_dict()
             args['document'] = DocumentFactory(self.tgbot).create(**document_args)
+        if sticker_args:
+            args['sticker'] = StickerFactory(self.tgbot).create(**sticker_args)
 
         obj = self.api_type.ptb_class(**args)
         return obj
