@@ -16,6 +16,8 @@ def run_bot(bot_path):
 
 def run_tests(import_pathes, src_path):
     """Run tests by import_pathes, or, if not provided, run all the tests"""
+    settings._src_path = src_path
+
     loader = unittest.loader.TestLoader()
     if import_pathes:
         suite = loader.loadTestsFromNames(import_pathes)

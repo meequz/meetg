@@ -37,7 +37,7 @@ setup(
     author='Mikhail Varantsou',
     license='LGPL-3.0',
     author_email='meequz@gmail.com',
-    install_requires=['parameterized', 'pillow', 'python-telegram-bot', 'pymongo', 'pytz'],
+    install_requires=['parameterized', 'python-telegram-bot', 'pymongo', 'pytz'],
     keywords='telegram bot framework',
     classifiers=[
         'Intended Audience :: Developers',

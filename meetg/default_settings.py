@@ -15,7 +15,7 @@ message_model_class = 'meetg.storage.DefaultMessageModel'
 user_model_class = 'meetg.storage.DefaultUserModel'
 chat_model_class = 'meetg.storage.DefaultChatModel'
 
-bot_class = 'bot.MyBot'
+bot_class = 'meetg.botting.BaseBot'
 
 api_attempts = 5
 network_error_wait = 2

@@ -9,7 +9,7 @@ from meetg.storage import (
     DefaultChatModel, DefaultMessageModel, DefaultUpdateModel, DefaultUserModel
 )
 from meetg.tests.base import AnyHandlerBot, AnyHandlerBotCase, MeetgBaseTestCase
-from meetg.utils import get_1px_image
+from meetg.testing import get_sample
 
 
 class NoHandlerBot(BaseBot):
@@ -331,6 +331,6 @@ class AnswerTest(AnyHandlerBotCase):
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_method.args['text'] == 'Update received: message'
 
-        self.bot.send_photo(1, photo=get_1px_image())
+        self.bot.send_photo(1, photo=get_sample('png_2px.png'))
         assert self.bot.last_method.name == 'send_photo'
-        assert self.bot.last_method.args['photo'].__class__ == BytesIO
+        assert isinstance(self.bot.last_method.args['photo'], bytes)

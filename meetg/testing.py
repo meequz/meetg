@@ -1,4 +1,4 @@
-import datetime, importlib, logging, unittest
+import datetime, importlib, logging, os, unittest
 
 from telegram import Chat, Message, Update, User
 
@@ -80,3 +80,11 @@ class UpdaterMock:
     def __init__(self, *args, **kwargs):
         self.job_queue = JobQueueMock()
         self.bot = TgBotMock()
+
+
+def get_sample(sample_fname):
+    """Return content of one of the sample files"""
+    path = os.path.join(settings._src_path, 'meetg', 'tests', 'samples', sample_fname)
+    with open(path, 'rb') as f:
+        sample = f.read()
+    return sample
