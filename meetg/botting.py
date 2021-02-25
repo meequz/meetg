@@ -6,7 +6,7 @@ import pytz
 from telegram.ext import Handler, Updater
 
 import settings
-from meetg.api_methods import api_method_classes
+from meetg.api_methods import api_methods
 from meetg.loging import get_logger
 from meetg.stats import (
     DateCache, get_job_reports, get_update_reports, _SaveTimeJobQueueWrapper, service_cache,
@@ -128,9 +128,9 @@ class BaseBot:
         remember in self.last_method and return generated method
         with its easy_call() result inside
         """
-        method_class = api_method_classes.get(attrname)
-        if method_class:
-            method_obj = method_class(self._tgbot, self._is_mock)
+        method_cls = api_methods.get(attrname)
+        if method_cls:
+            method_obj = method_cls(self._tgbot, self._is_mock)
             self.last_method = method_obj
 
             def _internal_call(*args, **kwargs):

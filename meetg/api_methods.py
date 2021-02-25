@@ -296,7 +296,143 @@ class SendAnimationMethod(ApiMethod):
         logger.info('Send animation to chat %s', chat_id)
 
 
-api_method_classes = {
+class SendAudioMethod(ApiMethod):
+    name = 'send_audio'
+    parameters = (
+        # required
+        'chat_id', 'audio',
+        # optional
+        'caption', 'parse_mode', 'caption_entities', 'duration', 'performer', 'title', 'thumb',
+        'disable_notification', 'reply_to_message_id', 'allow_sending_without_reply',
+        'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, audio, reply_to=None, markup=None, notify=True, force=True,
+            html=None, markdown=None, markdown_v2=None, **kwargs,
+        ):
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
+        success, response = self.call(
+            chat_id=chat_id, audio=audio, reply_to_message_id=reply_to,
+            reply_markup=markup, disable_notification=not notify, parse_mode=parse_mode,
+            allow_sending_without_reply=force, **kwargs,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        logger.info('Send audio to chat %s', chat_id)
+
+
+class SendVideoMethod(ApiMethod):
+    name = 'send_video'
+    parameters = (
+        # required
+        'chat_id', 'video',
+        # optional
+        'duration', 'width', 'height', 'thumb', 'caption', 'parse_mode', 'caption_entities',
+        'supports_streaming', 'disable_notification', 'reply_to_message_id',
+        'allow_sending_without_reply', 'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, video, reply_to=None, markup=None, notify=True, force=True,
+            html=None, markdown=None, markdown_v2=None, **kwargs,
+        ):
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
+        success, response = self.call(
+            chat_id=chat_id, video=video, reply_to_message_id=reply_to,
+            reply_markup=markup, disable_notification=not notify, parse_mode=parse_mode,
+            allow_sending_without_reply=force, **kwargs,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        logger.info('Send video to chat %s', chat_id)
+
+
+class SendStickerMethod(ApiMethod):
+    name = 'send_sticker'
+    parameters = (
+        # required
+        'chat_id', 'sticker',
+        # optional
+        'disable_notification', 'reply_to_message_id', 'allow_sending_without_reply',
+        'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, sticker, reply_to=None, markup=None, notify=True, force=True, **kwargs,
+        ):
+        success, response = self.call(
+            chat_id=chat_id, sticker=sticker, reply_to_message_id=reply_to,
+            reply_markup=markup, disable_notification=not notify,
+            allow_sending_without_reply=force, **kwargs,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        logger.info('Send sticker to chat %s', chat_id)
+
+
+class SendContactMethod(ApiMethod):
+    name = 'send_contact'
+    parameters = (
+        # required
+        'chat_id', 'phone_number', 'first_name',
+        # optional
+        'last_name', 'vcard', 'disable_notification', 'reply_to_message_id',
+        'allow_sending_without_reply', 'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, phone_number, first_name, reply_to=None, markup=None, notify=True,
+            force=True, **kwargs,
+        ):
+        success, response = self.call(
+            chat_id=chat_id, phone_number=phone_number, first_name=first_name,
+            reply_to_message_id=reply_to, reply_markup=markup, disable_notification=not notify,
+            allow_sending_without_reply=force, **kwargs,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        phone_number = kwargs.get('phone_number')
+        logger.info('Send contact %s to chat %s', phone_number, chat_id)
+
+
+class SendLocationMethod(ApiMethod):
+    name = 'send_location'
+    parameters = (
+        # required
+        'chat_id', 'latitude', 'longitude',
+        # optional
+        'horizontal_accuracy', 'live_period', 'heading', 'proximity_alert_radius',
+        'disable_notification', 'reply_to_message_id', 'allow_sending_without_reply',
+        'reply_markup',
+    )
+
+    def easy_call(
+            self, chat_id, lat, lon, reply_to=None, markup=None, notify=True, force=True, **kwargs,
+        ):
+        success, response = self.call(
+            chat_id=chat_id, latitude=lat, longitude=lon, reply_to_message_id=reply_to,
+            reply_markup=markup, disable_notification=not notify,
+            allow_sending_without_reply=force, **kwargs,
+        )
+        return success, response
+
+    def log(self, kwargs):
+        chat_id = kwargs.get('chat_id')
+        lat = kwargs.get('latitude')
+        lon = kwargs.get('longitude')
+        logger.info('Send location (%s, %s) to chat %s', lat, lon, chat_id)
+
+
+api_methods = {
     'send_message': SendMessageMethod,
     'send_photo': SendPhotoMethod,
     'send_document': SendDocumentMethod,
@@ -304,4 +440,9 @@ api_method_classes = {
     'edit_message_text': EditMessageTextMethod,
     'delete_message': DeleteMessageMethod,
     'forward_message': ForwardMessageMethod,
+    'send_sticker': SendStickerMethod,
+    'send_audio': SendAudioMethod,
+    'send_video': SendVideoMethod,
+    'send_contact': SendContactMethod,
+    'send_location': SendLocationMethod,
 }

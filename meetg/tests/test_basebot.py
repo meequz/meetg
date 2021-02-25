@@ -336,6 +336,38 @@ class AnswerTest(AnyHandlerBotCase):
         assert self.bot.last_method.name == 'send_animation'
         assert isinstance(self.bot.last_method.args['animation'], bytes)
 
+    def test_answer_audio(self):
+        self.bot.send_audio(1, audio=get_sample('audio.mp3'))
+        assert self.bot.last_method.name == 'send_audio'
+        assert isinstance(self.bot.last_method.args['audio'], bytes)
+
+    def test_answer_video(self):
+        self.bot.send_video(1, video=get_sample('video.mp4'))
+        assert self.bot.last_method.name == 'send_video'
+        assert isinstance(self.bot.last_method.args['video'], bytes)
+
+    def test_answer_animated_sticker(self):
+        self.bot.send_sticker(1, sticker=get_sample('animated_sticker.tgs'))
+        assert self.bot.last_method.name == 'send_sticker'
+        assert isinstance(self.bot.last_method.args['sticker'], bytes)
+
+    def test_answer_not_animated_sticker(self):
+        self.bot.send_sticker(1, sticker=get_sample('sticker.webp'))
+        assert self.bot.last_method.name == 'send_sticker'
+        assert isinstance(self.bot.last_method.args['sticker'], bytes)
+
+    def test_answer_contact(self):
+        self.bot.send_contact(1, phone_number='+3751234567', first_name='Cihan')
+        assert self.bot.last_method.name == 'send_contact'
+        assert self.bot.last_method.args['phone_number'] == '+3751234567'
+        assert self.bot.last_method.args['first_name'] == 'Cihan'
+
+    def test_answer_location(self):
+        self.bot.send_location(1, lat=52.0, lon=-12.1)
+        assert self.bot.last_method.name == 'send_location'
+        assert self.bot.last_method.args['latitude'] == 52.0
+        assert self.bot.last_method.args['longitude'] == -12.1
+
 
 class ReceiveTest(AnyHandlerBotCase):
 
