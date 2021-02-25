@@ -133,7 +133,11 @@ class BaseBot:
             self.last_method = method_obj
 
             def _internal_call(*args, **kwargs):
-                return method_obj.easy_call(*args, **kwargs)
+                easy = kwargs.pop('easy', True)
+                if easy:
+                    return method_obj.easy_call(*args, **kwargs)
+                else:
+                    return method_obj.call(*args, **kwargs)
 
             return _internal_call
 

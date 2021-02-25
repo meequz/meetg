@@ -16,7 +16,7 @@ class ApiMethod:
         self.is_mock = is_mock
         self.args = None
 
-    def easy_call(self, **kwargs):
+    def easy_call(self, *args, **kwargs):
         """Call the method by simplified params"""
         raise NotImplementedError
 
@@ -43,6 +43,16 @@ class ApiMethod:
             return f'{self.name}: {self.args}'
         else:
             return f'{self.name}: no args'
+
+    def _get_parse_mode(self, html, markdown, markdown_v2):
+        parse_mode = None
+        if html:
+            parse_mode = telegram.ParseMode.HTML
+        elif markdown:
+            parse_mode = telegram.ParseMode.MARKDOWN
+        elif markdown_v2:
+            parse_mode = telegram.ParseMode.MARKDOWN_V2
+        return parse_mode
 
     def _call(self, kwargs):
         """
@@ -118,11 +128,15 @@ class SendMessageMethod(ApiMethod):
         'reply_to_message_id', 'allow_sending_without_reply', 'reply_markup', 
     )
 
-    def easy_call(self, chat_id, text, reply_to=None, markup=None, html=None, preview=False):
-        parse_mode = telegram.ParseMode.HTML if html else None
+    def easy_call(
+            self, chat_id, text, reply_to=None, markup=None, preview=False, notify=True,
+            force=True, html=None, markdown=None, markdown_v2=None, **kwargs,
+        ):
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
         success, response = self.call(
             chat_id=chat_id, text=text, reply_to_message_id=reply_to, reply_markup=markup,
             parse_mode=parse_mode, disable_web_page_preview=not preview,
+            disable_notification=not notify, allow_sending_without_reply=force, **kwargs,
         )
         return success, response
 
@@ -141,10 +155,14 @@ class EditMessageTextMethod(ApiMethod):
         'chat_id', 'message_id', 'inline_message_id', 'parse_mode', 'entities',
         'disable_web_page_preview', 'reply_markup',
     )
-    def easy_call(self, text, chat_id, message_id, preview=False):
+    def easy_call(
+            self, text, chat_id, message_id, preview=False,
+            html=None, markdown=None, markdown_v2=None, **kwargs,
+        ):
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
         success, response = self.call(
-            text=text, chat_id=chat_id, message_id=message_id,
-            disable_web_page_preview=not preview,
+            text=text, chat_id=chat_id, message_id=message_id, parse_mode=parse_mode,
+            disable_web_page_preview=not preview, **kwargs,
         )
         return success, response
 
@@ -161,9 +179,7 @@ class DeleteMessageMethod(ApiMethod):
         'chat_id', 'message_id',
     )
     def easy_call(self, chat_id, message_id):
-        success, response = self.call(
-            chat_id=chat_id, message_id=message_id,
-        )
+        success, response = self.call(chat_id=chat_id, message_id=message_id)
         return success, response
 
     def log(self, kwargs):
@@ -207,11 +223,15 @@ class SendPhotoMethod(ApiMethod):
         'allow_sending_without_reply', 'reply_markup',
     )
 
-    def easy_call(self, chat_id, photo, caption=None, reply_to=None, markup=None, html=None):
-        parse_mode = telegram.ParseMode.HTML if html else None
+    def easy_call(
+            self, chat_id, photo, reply_to=None, markup=None, notify=True, force=True,
+            html=None, markdown=None, markdown_v2=None, **kwargs,
+        ):
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
         success, response = self.call(
-            chat_id=chat_id, photo=photo, caption=caption, reply_to_message_id=reply_to,
-            reply_markup=markup, parse_mode=parse_mode,
+            chat_id=chat_id, photo=photo, reply_to_message_id=reply_to,
+            reply_markup=markup, parse_mode=parse_mode, disable_notification=not notify,
+            allow_sending_without_reply=force, **kwargs,
         )
         return success, response
 
@@ -232,13 +252,14 @@ class SendDocumentMethod(ApiMethod):
     )
 
     def easy_call(
-            self, chat_id, document, thumb=None, caption=None, reply_to=None, markup=None,
-            html=None,
+            self, chat_id, document, reply_to=None, markup=None, force=True,
+            notify=True, html=None, markdown=None, markdown_v2=None, **kwargs,
         ):
-        parse_mode = telegram.ParseMode.HTML if html else None
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
         success, response = self.call(
-            chat_id=chat_id, document=document, thumb=thumb, caption=caption,
-            reply_to_message_id=reply_to, reply_markup=markup, parse_mode=parse_mode,
+            chat_id=chat_id, document=document, reply_to_message_id=reply_to, reply_markup=markup,
+            parse_mode=parse_mode, disable_notification=not notify,
+            allow_sending_without_reply=force, **kwargs,
         )
         return success, response
 
@@ -259,14 +280,14 @@ class SendAnimationMethod(ApiMethod):
     )
 
     def easy_call(
-            self, chat_id, animation, duration=None, width=None, thumb=None, height=None,
-            caption=None, reply_to=None, markup=None, html=None,
+            self, chat_id, animation, reply_to=None, markup=None, notify=True, force=True,
+            html=None, markdown=None, markdown_v2=None, **kwargs,
         ):
-        parse_mode = telegram.ParseMode.HTML if html else None
+        parse_mode = self._get_parse_mode(html, markdown, markdown_v2)
         success, response = self.call(
-            chat_id=chat_id, animation=animation, duration=duration, width=width, height=height,
-            thumb=thumb, caption=caption, reply_to_message_id=reply_to, reply_markup=markup,
-            parse_mode=parse_mode,
+            chat_id=chat_id, animation=animation, reply_to_message_id=reply_to,
+            reply_markup=markup, disable_notification=not notify, parse_mode=parse_mode,
+            allow_sending_without_reply=force, **kwargs,
         )
         return success, response
 
