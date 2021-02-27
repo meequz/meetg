@@ -93,6 +93,7 @@ class MongoStorage(AbstractStorage):
 
 class BaseDefaultModel:
     """Base class for default models"""
+    fields = ()
 
     def __init__(self, test=False):
         db_name = settings.db_name_test if test else settings.db_name
@@ -174,9 +175,12 @@ class BaseDefaultModel:
         return query
 
     def get_day_report(self):
-        query = self._get_created_for_day_query()
-        count = self.count(query)
-        return f'stored {count} new {self.name_lower}s'
+        report = ''
+        if self.fields:
+            query = self._get_created_for_day_query()
+            count = self.count(query)
+            report = f'stored {count} new {self.name_lower}s'
+        return report
 
 
 class ApiTypeModel(BaseDefaultModel):
