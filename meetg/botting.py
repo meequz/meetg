@@ -15,7 +15,7 @@ from meetg.storage import ApiTypeModel, get_model_classes
 from meetg.testing import UpdaterMock
 from meetg.factories import MessageUpdateFactory
 from meetg.utils import (
-    get_current_unixtime, get_unixtime_before_now, get_update_type, import_string,
+    get_current_unixtime, get_unixtime_before_now, get_update_type, import_string, true_only,
 )
 
 
@@ -83,7 +83,7 @@ class BaseBot:
         """Report bots stats daily"""
         job_reports = get_job_reports()
         update_reports = get_update_reports()
-        model_reports = [m.get_day_report() for m in self._models]
+        model_reports = true_only([m.get_day_report() for m in self._models])
 
         prefix = f'@{self.username} for the last 24 hours:'
         lines = [prefix] + update_reports + model_reports + job_reports

@@ -4,7 +4,6 @@ from importlib import import_module
 from io import BytesIO
 
 from PIL import Image
-from telegram.messageentity import MessageEntity
 
 
 def generate_random_string(length=22):
@@ -49,23 +48,6 @@ def dict_to_obj(name, dictionary: dict):
     return namedtuple(name, dictionary.keys())(*dictionary.values())
 
 
-def parse_entities(string):
-    """
-    In real world, Telegram server does it.
-    But for testing we may automatically create them
-    to not create in tests each time.
-    """
-    entities = []
-    if string.startswith('/'):
-        entity = MessageEntity(
-            type=MessageEntity.BOT_COMMAND,
-            offset=0,
-            length=len(string.split()[0]),
-        )
-        entities.append(entity)
-    return entities
-
-
 def get_unixtime_before_now(hours: int):
     before = time.time() - hours * 60 * 60
     return before
@@ -75,3 +57,8 @@ def get_update_type(update_obj):
     for key in update_obj.to_dict():
         if key != 'update_id':
             return key
+
+
+def true_only(collection):
+    collection_type = type(collection)
+    return collection_type(item for item in collection if item)

@@ -8,7 +8,8 @@ from meetg.api_types import (
     MessageApiType, PhotoSizeApiType, StickerApiType, UpdateApiType, UserApiType, VideoApiType,
 )
 from meetg.loging import get_logger
-from meetg.utils import generate_random_string, parse_entities
+from meetg.entities import parse_entities
+from meetg.utils import generate_random_string
 
 
 logger = get_logger()

@@ -6,7 +6,7 @@ import settings
 from meetg import default_settings
 from meetg.loging import get_logger
 from meetg.storage import get_model_classes
-from meetg.utils import dict_to_obj, import_string, parse_entities
+from meetg.utils import dict_to_obj, import_string
 
 
 class BaseTestCase(unittest.TestCase):
