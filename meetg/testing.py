@@ -14,11 +14,6 @@ class BaseTestCase(unittest.TestCase):
     def _reset_settings(self):
         importlib.reload(settings)
 
-    def _drop_db(self):
-        for model_class in get_model_classes():
-            Model = import_string(model_class)
-            Model(test=True).drop()
-
     def _reinit_loggers(self):
         import meetg.botting
         import meetg.storage
@@ -31,14 +26,21 @@ class BaseTestCase(unittest.TestCase):
         self._reset_settings()
         settings.log_level = logging.ERROR
         self._reinit_loggers()
+
+
+class BaseStorageTestCase(BaseTestCase):
+
+    def _drop_db(self):
+        for model_class in get_model_classes():
+            Model = import_string(model_class)
+            Model(test=True).drop()
+
+    def setUp(self):
+        super().setUp()
         self._drop_db()
 
-    def tearDown(self):
-        super().tearDown()
-        self._drop_db()
 
-
-class BotTestCase(BaseTestCase):
+class BotTestCase(BaseStorageTestCase):
 
     def setUp(self):
         super().setUp()

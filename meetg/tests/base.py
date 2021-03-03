@@ -1,11 +1,11 @@
 from telegram.ext import Filters, MessageHandler
 
 from meetg.botting import BaseBot
-from meetg.testing import BaseTestCase
+from meetg.testing import BaseStorageTestCase
 from meetg.utils import get_update_type
 
 
-class MeetgBaseTestCase(BaseTestCase):
+class MeetgBaseTestCase(BaseStorageTestCase):
     pass
 
 

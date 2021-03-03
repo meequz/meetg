@@ -1,16 +1,18 @@
 import re
+
 from telegram.messageentity import MessageEntity
 
 
 regexps = {
-    MessageEntity.EMAIL: '[\w\.-]+@[\w\.-]+\.\w+',
-    MessageEntity.BOT_COMMAND: '/\w+',
-    
-    # TODO
-    # MessageEntity.HASHTAG: '',
-    # MessageEntity.MENTION: '',
-    # MessageEntity.PHONE_NUMBER: '',
-    # MessageEntity.URL: '',
+    MessageEntity.EMAIL: '()(?P<entity>[\w\.-]+@[\w\.-]+\.\w+)',
+    MessageEntity.BOT_COMMAND: '(^|\s)(?P<entity>/\w+)',
+    MessageEntity.HASHTAG: '()(?P<entity>#\w*[a-zA-Z]\w*)',  # TODO: fix for non-latin
+    MessageEntity.MENTION: '(^|\s)(?P<entity>@\w+)',
+    MessageEntity.PHONE_NUMBER: '()(?P<entity>\+\d{11,12})(\D|$)',
+    MessageEntity.URL: (
+        '(^|\s)(?P<entity>([a-zA-Z]{2,10}\:\/\/)??[a-zA-Z0-9\.\/\?\:\-_=#]+\.'
+        '([a-zA-Z]){2,10}([a-zA-Z0-9\.\&\/\?\:\-_=#]*))($|\s)'
+    )
 }
 
 
@@ -23,7 +25,8 @@ def parse_entities(string, mode=None):
     entities = []
     for entity_type, regexp in regexps.items():
         for match in re.finditer(regexp, string):
-            start, end = match.span()
-            entity = MessageEntity(type=entity_type, offset=start, length=end-start)
-            entities.append(entity)
+            if match.group('entity').strip():
+                start, end = match.span(2)
+                entity = MessageEntity(type=entity_type, offset=start, length=end-start)
+                entities.append(entity)
     return entities
