@@ -24,7 +24,7 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self._reset_settings()
-        settings.log_level = logging.ERROR
+        settings.log_level = logging.CRITICAL
         self._reinit_loggers()
 
 

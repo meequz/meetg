@@ -11,9 +11,11 @@ logger = get_logger()
 
 class ApiMethod:
 
-    def __init__(self, tgbot, is_mock=False):
+    def __init__(self, tgbot, is_mock=False, raise_exception=None):
         self.tgbot = tgbot
         self.is_mock = is_mock
+        self.raise_exception = raise_exception
+        self.raised = False
         self.args = None
 
     def easy_call(self, *args, **kwargs):
@@ -28,12 +30,8 @@ class ApiMethod:
         Call the method by the exact Telegram API params,
         by keyword arguments only, to easily validate them
         """
-        self.args = kwargs.copy()
-        kwargs = self._validate(kwargs)
-        if self.is_mock:
-            success, response = None, None
-        else:
-            success, response = self._call(kwargs)
+        self.args = self._validate(kwargs)
+        success, response = self._call(self.args)
         if success:
             self.log(self.args)
         return success, response
@@ -54,13 +52,27 @@ class ApiMethod:
             parse_mode = telegram.ParseMode.MARKDOWN_V2
         return parse_mode
 
+    def _get_method(self):
+        if self.is_mock:
+
+            def tgbot_method(**kwargs):
+                if self.raise_exception is not None and not self.raised:
+                    self.raised = True
+                    raise self.raise_exception
+                return None, None
+
+        else:
+            tgbot_method = getattr(self.tgbot, self.name)
+
+        return tgbot_method
+
     def _call(self, kwargs):
         """
         Retries, handling network and load issues
         """
         to_attempt = settings.api_attempts
         success, response = False, None
-        tgbot_method = getattr(self.tgbot, self.name)
+        tgbot_method = self._get_method()
 
         while to_attempt > 0:
             try:
@@ -68,24 +80,7 @@ class ApiMethod:
                 success = True
                 to_attempt = 0
             except telegram.error.NetworkError as exc:
-                prefix = 'Network error: '
-                if 'are exactly the same as' in exc.message:
-                    logger.error(prefix + '"%s". It\'s ok, nothing to do here', exc.message)
-                    success = True
-                    to_attempt = 0
-                elif "Can't parse entities" in exc.message:
-                    logger.error(prefix + '"%s". Retrying is pointless', exc.message)
-                    to_attempt = 0
-                elif "Message to forward not found" in exc.message:
-                    logger.error(prefix + '"%s". Retrying is pointless', exc.message)
-                    to_attempt = 0
-                else:
-                    logger.error(
-                        prefix + '"%s". Waiting %s seconds then retry',
-                        settings.network_error_wait, exc.message,
-                    )
-                    to_attempt -= 1
-                    time.sleep(settings.network_error_wait)
+                success, to_attempt = self._handle_network_error(exc, success, to_attempt)
                 response = exc.message
             except telegram.error.TimedOut as exc:
                 logger.error('Timed Out. Retrying')
@@ -107,6 +102,33 @@ class ApiMethod:
                 to_attempt -= 2
         logger.debug('Success' if success else 'Fail')
         return success, response
+
+    def _handle_network_error(self, exc, success, to_attempt):
+        success = False
+        prefix = 'Network error: '
+
+        if 'are exactly the same as' in exc.message:
+            logger.error(prefix + '"%s". It\'s ok, nothing to do here', exc.message)
+            success = True
+            to_attempt = 0
+
+        elif "Can't parse entities" in exc.message:
+            logger.error(prefix + '"%s". Retrying is pointless', exc.message)
+            to_attempt = 0
+
+        elif "Message to forward not found" in exc.message:
+            logger.error(prefix + '"%s". Retrying is pointless', exc.message)
+            to_attempt = 0
+
+        else:
+            logger.error(
+                prefix + '"%s". Waiting %s seconds then retry',
+                settings.network_error_wait, exc.message,
+            )
+            to_attempt -= 1
+            time.sleep(settings.network_error_wait)
+
+        return success, to_attempt
 
     def _validate(self, data):
         validated = {}

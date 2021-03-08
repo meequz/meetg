@@ -130,11 +130,12 @@ class BaseBot:
         """
         method_cls = api_methods.get(attrname)
         if method_cls:
-            method_obj = method_cls(self._tgbot, self._is_mock)
-            self.last_method = method_obj
 
             def _internal_call(*args, **kwargs):
                 easy = kwargs.pop('easy', True)
+                raise_exception = kwargs.pop('raise_exception', None)
+                method_obj = method_cls(self._tgbot, self._is_mock, raise_exception)
+                self.last_method = method_obj
                 if easy:
                     return method_obj.easy_call(*args, **kwargs)
                 else:

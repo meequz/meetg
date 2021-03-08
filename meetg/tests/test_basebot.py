@@ -1,6 +1,7 @@
 import logging
 from io import BytesIO
 
+import telegram
 from parameterized import parameterized
 
 import settings
@@ -429,3 +430,12 @@ class ReceiveTest(AnyHandlerBotCase):
         assert self.bot.last_method.name == 'send_message'
         assert self.bot.last_update.effective_message.location.longitude == -36
         assert self.bot.last_update.effective_message.location.latitude == 45
+
+
+class ErrorTest(AnyHandlerBotCase):
+
+    def test_chat_migrated(self):
+        exception = telegram.error.ChatMigrated(new_chat_id=2)
+        self.bot.send_message(1, 'Spam', raise_exception=exception)
+        assert self.bot.last_method.name == 'send_message'
+        assert self.bot.last_method.args['chat_id'] == 2
