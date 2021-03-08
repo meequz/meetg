@@ -17,9 +17,9 @@ class AnyHandlerBot(BaseBot):
         handlers = (MessageHandler(Filters.all, self.reply_any), )
         return handlers
 
-    def reply_any(self, update_obj, context):
-        chat_id = update_obj.effective_chat.id
-        self.send_message(chat_id, update_obj.to_json())
+    def reply_any(self, update, context):
+        chat_id = update.effective_chat.id
+        self.send_message(chat_id, update.to_json())
 
 
 class AnyHandlerBotCase(MeetgBaseTestCase):

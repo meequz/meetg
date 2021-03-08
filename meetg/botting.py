@@ -72,12 +72,12 @@ class BaseBot:
             setattr(self, f'{model.name_lower}_model', model)
             self._models.append(model)
 
-    def _mock_process_update(self, update_obj):
+    def _mock_process_update(self, update):
         """Simulation of telegram.ext.dispatcher.Dispatcher.process_update()"""
         for handler in self._handlers:
-            check = handler.check_update(update_obj)
+            check = handler.check_update(update)
             if check not in (None, False):
-                return handler.callback(update_obj, None)
+                return handler.callback(update, None)
 
     def _job_report_stats(self, context=None):
         """Report bots stats daily"""
@@ -111,16 +111,16 @@ class BaseBot:
         Simulates receiving Update with 'message' by the bot in tests
         """
         factory = MessageUpdateFactory(self, 'message')
-        update_obj = factory.create(text=text, **kwargs)
-        return self._mock_process_update(update_obj)
+        update = factory.create(text=text, **kwargs)
+        return self._mock_process_update(update)
 
     def receive_edited_message(self, text, chat_id, message_id, **kwargs):
         """
         Simulates receiving Update with 'edited_message' by the bot in tests
         """
         factory = MessageUpdateFactory(self, 'edited_message')
-        update_obj = factory.create(text=text, chat__id=chat_id, message_id=message_id, **kwargs)
-        return self._mock_process_update(update_obj)
+        update = factory.create(text=text, chat__id=chat_id, message_id=message_id, **kwargs)
+        return self._mock_process_update(update)
 
     def __getattr__(self, attrname):
         """
@@ -164,19 +164,19 @@ class _ServiceHandler(Handler):
             if isinstance(model, ApiTypeModel) and model.fields:
                 self.models.append(model)
 
-    def check_update(self, update_obj):
+    def check_update(self, update):
         """The method triggers by PTB on each received update"""
-        self.bot.last_update = update_obj
-        self.save(update_obj)
-        self.count(update_obj)
+        self.bot.last_update = update
+        self.save(update)
+        self.count(update)
 
-    def count(self, update_obj):
+    def count(self, update):
         """Count stats for a later report"""
-        update_type = get_update_type(update_obj)
+        update_type = get_update_type(update)
         service_cache['stats']['update'].init(DateCache)
         service_cache['stats']['update'][update_type].add()
 
-    def save(self, update_obj):
+    def save(self, update):
         """Save all the fields specified in enabled models"""
         for model in self.models:
-            model.save_from_update_obj(update_obj)
+            model.save_from_update(update)

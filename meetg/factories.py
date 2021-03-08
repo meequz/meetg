@@ -250,8 +250,8 @@ class MessageUpdateFactory(UpdateFactory):
 
     def create(self, **kwargs):
         message = MessageFactory(self.tgbot, self.message_type).create(**kwargs)
-        update_obj = self.api_type.ptb_class(get_next_int(), **{self.message_type: message})
-        return update_obj
+        update = self.api_type.ptb_class(get_next_int(), **{self.message_type: message})
+        return update
 
 
 class InlineQueryUpdateFactory(UpdateFactory):

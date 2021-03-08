@@ -223,7 +223,7 @@ class UpdateOnlySpecifiedFields(AnyHandlerBotCase):
 
 class UpdateDbObjTest(AnyHandlerBotCase):
     """
-    Tests about updating objects in database,
+    Tests of updating objects in database,
     not about PTB Update object
     """
     def test_update_message(self):
@@ -275,6 +275,14 @@ class UpdateDbObjTest(AnyHandlerBotCase):
 
         self.bot.receive_message('More Spam', from__id=531)
         assert not self.bot.user_model.find_one()['meetg_modified_at']
+
+    def test_only_one_msg_with_the_same_ids(self):
+        self.bot.receive_message('Foo', chat__id=1, message_id=1)
+        assert self.bot.user_model.count() == 1
+
+        self.bot.receive_message('Bar', chat__id=1, message_id=1)
+        assert self.bot.message_model.count() == 1
+        assert self.bot.message_model.find_one()['text'] == 'Bar'
 
 
 class StatTest(AnyHandlerBotCase):

@@ -26,22 +26,22 @@ class {name_cc}(BaseBot):
         # https://python-telegram-bot.readthedocs.io/en/stable/telegram.ext.jobqueue.html
         job_queue.run_repeating(self.job_do_stuff, 60 * 60)  # each hour
 
-    def reply_start(self, update_obj, context):
+    def reply_start(self, update, context):
         # What to do when /start command received
-        chat_id = update_obj.effective_chat.id
+        chat_id = update.effective_chat.id
         self.send_message(chat_id, '/start received')
 
-    def reply_private(self, update_obj, context):
+    def reply_private(self, update, context):
         # What to do when a private message received
-        chat_id = update_obj.effective_chat.id
-        text = update_obj.effective_message.text
+        chat_id = update.effective_chat.id
+        text = update.effective_message.text
         answer = f'Text received in private: {{text}}'
         self.send_message(chat_id, answer)
 
-    def reply_group(self, update_obj, context):
+    def reply_group(self, update, context):
         # What to do when a group message received
-        chat_id = update_obj.effective_chat.id
-        text = update_obj.effective_message.text
+        chat_id = update.effective_chat.id
+        text = update.effective_message.text
         answer = f'Text received in group: {{text}}'
         self.send_message(chat_id, answer)
 

@@ -53,8 +53,8 @@ def get_unixtime_before_now(hours: int):
     return before
 
 
-def get_update_type(update_obj):
-    for key in update_obj.to_dict():
+def get_update_type(update):
+    for key in update.to_dict():
         if key != 'update_id':
             return key
 

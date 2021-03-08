@@ -200,7 +200,7 @@ class ApiTypeModel(BaseDefaultModel):
         else:
             logger.info('Storage: %s updated', self.name)
 
-    def get_ptb_obj(self, update_obj):
+    def get_ptb_obj(self, update):
         raise NotImplementedError
 
     def get_query(self, ptb_obj):
@@ -215,9 +215,9 @@ class ApiTypeModel(BaseDefaultModel):
                     break
         return equal
 
-    def save_from_update_obj(self, update_obj):
+    def save_from_update(self, update):
         """Create or update object in DB"""
-        ptb_obj = self.get_ptb_obj(update_obj)
+        ptb_obj = self.get_ptb_obj(update)
         if ptb_obj:
             query = self.get_query(ptb_obj)
             db_obj = self.find_one(query)
@@ -234,12 +234,12 @@ class DefaultUpdateModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def save_from_update_obj(self, update_obj):
-        data = update_obj.to_dict()
+    def save_from_update(self, update):
+        data = update.to_dict()
         return self.create(data)
 
-    def get_ptb_obj(self, update_obj):
-        return update_obj
+    def get_ptb_obj(self, update):
+        return update
 
     def get_query(self, ptb_obj):
         query = {self.api_type.id_field: ptb_obj.update_id}
@@ -252,8 +252,8 @@ class DefaultMessageModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def get_ptb_obj(self, update_obj):
-        ptb_obj = update_obj.effective_message
+    def get_ptb_obj(self, update):
+        ptb_obj = update.effective_message
         return ptb_obj
 
     def get_query(self, ptb_obj):
@@ -267,8 +267,8 @@ class DefaultUserModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def get_ptb_obj(self, update_obj):
-        ptb_obj = update_obj.effective_user
+    def get_ptb_obj(self, update):
+        ptb_obj = update.effective_user
         return ptb_obj
 
     def get_query(self, ptb_obj):
@@ -282,8 +282,8 @@ class DefaultChatModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
 
-    def get_ptb_obj(self, update_obj):
-        ptb_obj = update_obj.effective_chat
+    def get_ptb_obj(self, update):
+        ptb_obj = update.effective_chat
         return ptb_obj
 
     def get_query(self, ptb_obj):
