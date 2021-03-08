@@ -125,10 +125,10 @@ class BaseDefaultModel:
         return result
 
     def _log_create(self, data: dict):
-        logger.info('Storage: %s created', self.name)
+        logger.info('%s created in storage', self.name)
 
     def _log_update(self, data: dict):
-        logger.info('Storage: %s updated', self.name)
+        logger.info('%s updated in storage', self.name)
 
     def create(self, data: dict):
         data = self._validate(data)
@@ -189,16 +189,16 @@ class ApiTypeModel(BaseDefaultModel):
     def _log_create(self, data: dict):
         id_field = self.api_type.id_field
         if id_field in data:
-            logger.info('Storage: %s %s created', self.name, data[id_field])
+            logger.info('%s %s created in storage', self.name, data[id_field])
         else:
-            logger.info('Storage: %s created', self.name)
+            logger.info('%s created in storage', self.name)
 
     def _log_update(self, data: dict):
         id_field = self.api_type.id_field
         if id_field in data:
-            logger.info('Storage: %s %s updated', self.name, data[id_field])
+            logger.info('%s %s updated in storage', self.name, data[id_field])
         else:
-            logger.info('Storage: %s updated', self.name)
+            logger.info('%s updated in storage', self.name)
 
     def get_ptb_obj(self, update):
         raise NotImplementedError

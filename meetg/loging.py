@@ -9,8 +9,8 @@ _file_path = None
 
 
 def _create_logger():
-    format_ = '%(asctime)s: %(message)s'
-    logging.basicConfig(format='%(asctime)s: %(message)s')
+    format_ = f'%(levelname)s %(asctime)s: %(message)s'
+    logging.basicConfig(format=format_)
 
     logger = logging.getLogger(__name__)
     logger.setLevel(settings.log_level)
