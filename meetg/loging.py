@@ -3,7 +3,12 @@ import logging
 import settings
 
 
-def get_logger():
+_logger = None
+_level = None
+_file_path = None
+
+
+def _create_logger():
     format_ = '%(asctime)s: %(message)s'
     logging.basicConfig(format='%(asctime)s: %(message)s')
 
@@ -15,3 +20,23 @@ def get_logger():
     logger.addHandler(file_handler)
 
     return logger
+
+
+def _are_settings_updated():
+    level_changed = _level != settings.log_level
+    file_changed = _file_path != settings.log_path
+    return level_changed or file_changed
+
+
+def _update():
+    global _level, _file_path
+    _level = settings.log_level
+    _file_path = settings.log_path
+
+
+def get_logger():
+    global _logger
+    if _logger is None or _are_settings_updated():
+        _logger = _create_logger()
+        _update()
+    return _logger
