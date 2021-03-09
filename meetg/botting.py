@@ -174,6 +174,8 @@ class _ServiceHandler(Handler):
     def count(self, update):
         """Count stats for a later report"""
         update_type = get_update_type(update)
+        if update_type == 'message':
+            update_type = f'{update.effective_chat.type} {update_type}'
         service_cache['stats']['update'].init(DateCache)
         service_cache['stats']['update'][update_type].add()
 
