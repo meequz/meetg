@@ -1,6 +1,10 @@
 import psutil
 
+from meetg.loging import get_logger
 from meetg.utils import get_current_unixtime, get_unixtime_before_now, true_only
+
+
+logger = get_logger()
 
 
 class SoftDict(dict):
@@ -159,6 +163,7 @@ class _SaveTimeJobQueueWrapper:
             segment = DateSegment()
             result = callback(*args, **kwargs)
             segment.finish()
+            logger.info('%s executed in %.3f seconds', callback.__name__, segment.get_duration())
             service_cache['stats']['job'][callback.__name__].add(segment)
             return result
 
