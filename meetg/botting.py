@@ -1,21 +1,18 @@
 import datetime, time
 from collections import defaultdict
 
-import telegram
-import pytz
+import pytz, telegram
 from telegram.ext import Handler, Updater
 
 import settings
 from meetg.api_methods import api_methods
 from meetg.loging import get_logger
-from meetg.stats import (
-    DateCache, get_job_reports, get_update_reports, _SaveTimeJobQueueWrapper, service_cache,
-)
+from meetg.stats import DateCache, get_all_reports, _SaveTimeJobQueueWrapper, service_cache
 from meetg.storage import ApiTypeModel, get_model_classes
 from meetg.testing import UpdaterMock
 from meetg.factories import MessageUpdateFactory
 from meetg.utils import (
-    get_current_unixtime, get_unixtime_before_now, get_update_type, import_string, true_only,
+    get_current_unixtime, get_unixtime_before_now, get_update_type, import_string,
 )
 
 
@@ -81,17 +78,13 @@ class BaseBot:
 
     def _job_report_stats(self, context=None):
         """Report bots stats daily"""
-        job_reports = get_job_reports()
-        update_reports = get_update_reports()
-        model_reports = true_only([m.get_day_report() for m in self._models])
-
         prefix = f'@{self.username} for the last 24 hours:'
-        lines = [prefix] + update_reports + model_reports + job_reports
-        report = '\n- '.join(lines)
+        lines = [prefix] + get_all_reports(self._models)
+        stats = '\n• '.join(lines)
 
-        logger.info(report)
+        logger.info(stats)
         if settings.stats_to:
-            self.send_messages(settings.stats_to, report)
+            self.send_messages(settings.stats_to, stats)
 
     def run(self):
         self.updater.start_polling()

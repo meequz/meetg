@@ -1,4 +1,6 @@
-from meetg.utils import get_current_unixtime, get_unixtime_before_now
+import psutil
+
+from meetg.utils import get_current_unixtime, get_unixtime_before_now, true_only
 
 
 class SoftDict(dict):
@@ -119,6 +121,26 @@ def get_update_reports():
         line = f"received {count} '{update_type}' updates"
         update_reports.append(line)
     return update_reports
+
+
+def get_model_reports(models):
+    reports = [model.get_day_report() for model in models]
+    return true_only(reports)
+
+
+def get_sys_reports():
+    memory = psutil.Process().memory_info().rss
+    mem_report = f'had {memory / 1000000 :.2f} MB of memory occupied'
+    reports = [mem_report]
+    return reports
+
+
+def get_all_reports(models):
+    update_reports = get_update_reports()
+    model_reports = get_model_reports(models)
+    job_reports = get_job_reports()
+    sys_reports = get_sys_reports()
+    return update_reports + model_reports + job_reports + sys_reports
 
 
 class _SaveTimeJobQueueWrapper:
