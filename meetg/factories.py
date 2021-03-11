@@ -192,6 +192,12 @@ class LocationFactory(Factory):
 class MessageFactory(Factory):
     api_type = MessageApiType
 
+    # attributes belong only to non-private chats
+    _group_attrs = (
+        'new_chat_members', 'left_chat_member', 'group_chat_created', 'migrate_to_chat_id',
+        'migrate_from_chat_id',
+    )
+
     def __init__(self, tgbot, message_type):
         super().__init__(tgbot)
         self.message_type = message_type
@@ -206,13 +212,30 @@ class MessageFactory(Factory):
             defaults['edit_date'] = datetime.datetime.now()
         return defaults
 
-    def create(self, **kwargs):
-        chat__id = kwargs.get('chat__id', 0)
-        if chat__id > 0 and 'from__id' not in kwargs:
-            kwargs['from__id'] = chat__id
+    def _prepare_kwargs(self, kwargs):
+        # if any attr related to a group is present, set chat__id to negative
+        if 'chat__id' not in kwargs:
+            is_group = bool(set(self._group_attrs) & set(kwargs))
+            if is_group:
+                kwargs['chat__id'] = -get_next_int()
 
+        chat__id = kwargs.get('chat__id', 0)
+
+        # create from__id if chat is private
+        if chat__id > 0:
+            if 'from__id' not in kwargs:
+                kwargs['from__id'] = chat__id
+
+        # create chat__type if chat is group
+        else:
+            if 'chat__type' not in kwargs:
+                kwargs['chat__type'] = 'group'
+
+    def create(self, **kwargs):
+        self._prepare_kwargs(kwargs)
         args = self._create_args(kwargs)
-        args['entities'] = parse_entities(args['text'])
+
+        args['entities'] = parse_entities(args.get('text', ''))
         args['chat'] = ChatFactory(self.tgbot).prefix_create('chat__', kwargs, force=True)
         args['from_user'] = UserFactory(self.tgbot).prefix_create('from__', kwargs, force=True)
         args['document'] = DocumentFactory(self.tgbot).prefix_create('document__', kwargs)
@@ -221,6 +244,9 @@ class MessageFactory(Factory):
         args['video'] = VideoFactory(self.tgbot).prefix_create('video__', kwargs)
         args['contact'] = ContactFactory(self.tgbot).prefix_create('contact__', kwargs)
         args['location'] = LocationFactory(self.tgbot).prefix_create('location__', kwargs)
+        args['new_chat_members'] = [
+            UserFactory(self.tgbot).create(**kw) for kw in kwargs.get('new_chat_members', [])
+        ]
 
         photo = PhotoSizeFactory(self.tgbot).prefix_create('photo__', kwargs)
         if photo:

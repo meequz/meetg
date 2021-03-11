@@ -2,6 +2,7 @@
 from telegram.messageentity import MessageEntity
 
 from meetg.entities import parse_entities
+from meetg.factories import MessageFactory
 from meetg.testing import BaseTestCase
 
 
@@ -56,3 +57,16 @@ class ParseEntitiesTest(BaseTestCase):
         assert entities[0].type == MessageEntity.URL
         assert entities[0].offset == 6
         assert entities[0].length == 25
+
+
+class MessageFactoryTest(BaseTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.factory = MessageFactory(None, 'message')
+
+    def test_type_is_group_if_new_chat_members(self):
+        new_chat_members = [{'is_bot': True, 'username': 'mock_username'}]
+        message = self.factory.create(new_chat_members=new_chat_members)
+        assert message.chat.id < 0
+        assert message.chat.type == 'group'

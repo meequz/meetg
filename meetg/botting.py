@@ -7,8 +7,8 @@ from telegram.ext import Handler, Updater
 import settings
 from meetg.api_methods import api_methods
 from meetg.loging import get_logger
-from meetg.stats import DateCache, get_all_reports, _SaveTimeJobQueueWrapper, service_cache
-from meetg.storage import ApiTypeModel, get_model_classes
+from meetg.stats import DateCache, get_reports, _SaveTimeJobQueueWrapper, service_cache
+from meetg.storage import db
 from meetg.testing import UpdaterMock
 from meetg.factories import MessageUpdateFactory
 from meetg.utils import (
@@ -22,10 +22,10 @@ logger = get_logger()
 class BaseBot:
     """Common Telegram bot logic"""
 
-    def __init__(self, mock=False):
-        self._is_mock = mock
+    def __init__(self):
+        db.init_models()
+        self._is_mock = settings.is_test
         self._init_updater()
-        self._init_models(test=mock)
         self._init_handlers()
         self._init_jobs()
         self.last_method = None
@@ -39,7 +39,7 @@ class BaseBot:
         self.username = self.updater.bot.get_me().username
 
     def _init_handlers(self):
-        service_handler = _ServiceHandler(self._models, self)
+        service_handler = _ServiceHandler(self)
         self._handlers = (service_handler,) + self.init_handlers()
         if not self._is_mock:
             for handler in self._handlers:
@@ -61,15 +61,7 @@ class BaseBot:
         self._job_queue_wrapper.run_daily(self._job_report_stats, stats_dt)
         self.init_jobs(self._job_queue_wrapper)
 
-    def _init_models(self, test=False):
-        """Read model classes from settings, import and add them to self"""
-        self._models = []
-        for model_class in get_model_classes():
-            model = import_string(model_class)(test=test)
-            setattr(self, f'{model.name_lower}_model', model)
-            self._models.append(model)
-
-    def _mock_process_update(self, update):
+    def _simulate_process_update(self, update):
         """Simulation of telegram.ext.dispatcher.Dispatcher.process_update()"""
         for handler in self._handlers:
             check = handler.check_update(update)
@@ -79,7 +71,7 @@ class BaseBot:
     def _job_report_stats(self, context=None):
         """Report bots stats daily"""
         prefix = f'@{self.username} for the last 24 hours:'
-        lines = [prefix] + get_all_reports(self._models)
+        lines = [prefix] + get_reports()
         stats = '\n• '.join(lines)
 
         logger.info(stats)
@@ -105,7 +97,7 @@ class BaseBot:
         """
         factory = MessageUpdateFactory(self, 'message')
         update = factory.create(text=text, **kwargs)
-        return self._mock_process_update(update)
+        return self._simulate_process_update(update)
 
     def receive_edited_message(self, text, chat_id, message_id, **kwargs):
         """
@@ -113,7 +105,7 @@ class BaseBot:
         """
         factory = MessageUpdateFactory(self, 'edited_message')
         update = factory.create(text=text, chat__id=chat_id, message_id=message_id, **kwargs)
-        return self._mock_process_update(update)
+        return self._simulate_process_update(update)
 
     def __getattr__(self, attrname):
         """
@@ -125,11 +117,11 @@ class BaseBot:
         if method_cls:
 
             def _internal_call(*args, **kwargs):
-                easy = kwargs.pop('easy', True)
                 raise_exception = kwargs.pop('raise_exception', None)
-                method_obj = method_cls(self._tgbot, self._is_mock, raise_exception)
+                method_obj = method_cls(self._tgbot, raise_exception)
                 self.last_method = method_obj
-                if easy:
+
+                if kwargs.pop('easy', True):
                     return method_obj.easy_call(*args, **kwargs)
                 else:
                     return method_obj.call(*args, **kwargs)
@@ -146,17 +138,9 @@ class _ServiceHandler(Handler):
     but saves info from each Update for update-related models,
     if they are enabled, and count stats
     """
-    def __init__(self, models, bot):
+    def __init__(self, bot):
         super().__init__(lambda: None)
-        self.gather_models(models)
         self.bot = bot
-
-    def gather_models(self, models):
-        """Gather models related to Bot API, to save them later"""
-        self.models = []
-        for model in models:
-            if isinstance(model, ApiTypeModel) and model.fields:
-                self.models.append(model)
 
     def check_update(self, update):
         """The method triggers by PTB on each received update"""
@@ -174,5 +158,5 @@ class _ServiceHandler(Handler):
 
     def save(self, update):
         """Save all the fields specified in enabled models"""
-        for model in self.models:
+        for model in db.models:
             model.save_from_update(update)

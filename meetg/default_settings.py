@@ -10,10 +10,10 @@ db_host = 'localhost'
 db_port = 27017
 
 storage_class = 'meetg.storage.MongoStorage'
-update_model_class = 'meetg.storage.DefaultUpdateModel'
-message_model_class = 'meetg.storage.DefaultMessageModel'
-user_model_class = 'meetg.storage.DefaultUserModel'
-chat_model_class = 'meetg.storage.DefaultChatModel'
+Update_model = 'meetg.storage.DefaultUpdateModel'
+Message_model = 'meetg.storage.DefaultMessageModel'
+User_model = 'meetg.storage.DefaultUserModel'
+Chat_model = 'meetg.storage.DefaultChatModel'
 
 bot_class = 'meetg.botting.BaseBot'
 
@@ -24,3 +24,6 @@ log_path = 'log.txt'
 log_level = logging.INFO
 
 stats_to = ()
+
+
+is_test = False

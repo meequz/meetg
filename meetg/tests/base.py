@@ -26,4 +26,4 @@ class AnyHandlerBotCase(MeetgBaseTestCase):
 
     def setUp(self):
         super().setUp()
-        self.bot = AnyHandlerBot(mock=True)
+        self.bot = AnyHandlerBot()

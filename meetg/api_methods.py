@@ -4,6 +4,8 @@ import telegram
 
 import settings
 from meetg.loging import get_logger
+from meetg.storage import db
+from meetg.utils import get_current_unixtime
 
 
 logger = get_logger()
@@ -11,9 +13,9 @@ logger = get_logger()
 
 class ApiMethod:
 
-    def __init__(self, tgbot, is_mock=False, raise_exception=None):
+    def __init__(self, tgbot, raise_exception=None):
         self.tgbot = tgbot
-        self.is_mock = is_mock
+        self.is_mock = settings.is_test
         self.raise_exception = raise_exception
         self.raised = False
         self.args = None
@@ -59,7 +61,7 @@ class ApiMethod:
                 if self.raise_exception is not None and not self.raised:
                     self.raised = True
                     raise self.raise_exception
-                return None, None
+                return ''
 
         else:
             tgbot_method = getattr(self.tgbot, self.name)
@@ -97,9 +99,9 @@ class ApiMethod:
                 kwargs['chat_id'] = exc.new_chat_id
                 to_attempt -= 1
             except (telegram.error.Unauthorized, telegram.error.BadRequest) as exc:
-                logger.error('Error: "%s". Retrying', exc)
+                success, to_attempt = self._handle_unauthorized_or_bad(exc, success, to_attempt)
                 response = exc.message
-                to_attempt -= 2
+
         logger.debug('Success' if success else 'Fail')
         return success, response
 
@@ -123,10 +125,24 @@ class ApiMethod:
         else:
             logger.error(
                 prefix + '"%s". Waiting %s seconds then retry',
-                settings.network_error_wait, exc.message,
+                exc.message, settings.network_error_wait
             )
             to_attempt -= 1
             time.sleep(settings.network_error_wait)
+
+        return success, to_attempt
+
+    def _handle_unauthorized_or_bad(self, exc, success, to_attempt):
+        success = False
+
+        # telegram.error.Unauthorized
+        if 'bot was kicked' in exc.message:
+            logger.error(exc)
+            to_attempt = 0
+
+        else:
+            logger.error('Error: "%s". Retrying', exc)
+            to_attempt -= 2
 
         return success, to_attempt
 
@@ -149,6 +165,13 @@ class SendMessageMethod(ApiMethod):
         'parse_mode', 'entities', 'disable_web_page_preview', 'disable_notification',
         'reply_to_message_id', 'allow_sending_without_reply', 'reply_markup', 
     )
+
+    def call(self, **kwargs):
+        """If bot was kicked from the chat, update Chat record in storage"""
+        success, response = super().call(**kwargs)
+        if not success and 'bot was kicked' in response:
+            db.Chat.update_one({'id': kwargs['chat_id']}, {'_kicked_at': get_current_unixtime()})
+        return success, response
 
     def easy_call(
             self, chat_id, text, reply_to=None, markup=None, preview=False, notify=True,

@@ -1,12 +1,10 @@
-import time
-
 import pymongo
 
 import settings
 from meetg.api_types import (
     ApiType, ChatApiType, MessageApiType, UpdateApiType, UserApiType,
 )
-from meetg.utils import get_unixtime_before_now, import_string
+from meetg.utils import get_current_unixtime, get_unixtime_before_now, import_string
 from meetg.loging import get_logger
 
 
@@ -91,9 +89,13 @@ class MongoStorage(AbstractStorage):
         return self.db.drop_collection(self.table_name)
 
 
-class BaseDefaultModel:
-    """Base class for default models"""
+class BaseModel:
+    """
+    Base class for default models,
+    and custom user models, optionally
+    """
     fields = ()
+    special_fields = ('_created_at', '_modified_at')
 
     def __init__(self, test=False):
         db_name = settings.db_name_test if test else settings.db_name
@@ -114,7 +116,7 @@ class BaseDefaultModel:
     def _validate(self, data):
         validated = {}
         for field in data:
-            if field in self.fields:
+            if field in self.fields + self.special_fields:
                 validated[field] = data[field]
             else:
                 logger.warning('Field %s doesn\'t belong to model %s', field, self.name)
@@ -134,8 +136,8 @@ class BaseDefaultModel:
         data = self._validate(data)
         result = None
         if data:
-            data['meetg_created_at'] = time.time()
-            data['meetg_modified_at'] = None
+            data['_created_at'] = get_current_unixtime()
+            data['_modified_at'] = None
             result = self._storage.create(data)
             self._log_create(data)
         return result
@@ -150,13 +152,13 @@ class BaseDefaultModel:
 
     def update(self, query, new_data):
         new_data = self._validate(new_data)
-        new_data['meetg_modified_at'] = time.time()
+        new_data['_modified_at'] = get_current_unixtime()
         updated = self._storage.update(query, new_data)
         return updated
 
     def update_one(self, query, new_data):
         new_data = self._validate(new_data)
-        new_data['meetg_modified_at'] = time.time()
+        new_data['_modified_at'] = get_current_unixtime()
         updated = self._storage.update_one(query, new_data)
         self._log_update(query)
         return updated
@@ -167,8 +169,8 @@ class BaseDefaultModel:
 
     def _get_created_for_day_query(self):
         query = {
-            'meetg_created_at': {
-                '$lt': time.time(),
+            '_created_at': {
+                '$lt': get_current_unixtime(),
                 '$gte': get_unixtime_before_now(24),
             },
         }
@@ -183,7 +185,7 @@ class BaseDefaultModel:
         return report
 
 
-class ApiTypeModel(BaseDefaultModel):
+class ApiTypeModel(BaseModel):
     """Base model class for objects related to Bot API"""
 
     def _log_create(self, data: dict):
@@ -281,6 +283,7 @@ class DefaultChatModel(ApiTypeModel):
 
     name = api_type.name
     fields = api_type.fields
+    special_fields = BaseModel.special_fields + ('_kicked_at', )
 
     def get_ptb_obj(self, update):
         ptb_obj = update.effective_chat
@@ -291,14 +294,6 @@ class DefaultChatModel(ApiTypeModel):
         return query
 
 
-def get_model_classes():
-    model_classes = [
-        getattr(settings, k) for k in dir(settings)
-        if k.endswith('_model_class')
-    ]
-    return model_classes
-
-
 def mongo_get_first(cursor):
     """Return first item in the cursor"""
     return [item for item in cursor.limit(1)][0]
@@ -307,3 +302,50 @@ def mongo_get_first(cursor):
 def mongo_get_last(cursor):
     """Return last item in the cursor"""
     return [item for item in cursor][-1]
+
+
+class Database:
+    """Entry point to work with DB models"""
+
+    def __init__(self):
+        self._models = None
+        self._inited = False
+
+    @property
+    def models(self):
+        self._ensure_inited()
+        return self._models
+
+    def _ensure_inited(self):
+        if not self._inited:
+            self.init_models()
+
+    def _get_model(self, setting_name):
+        model_name = setting_name[:-6]
+        model_path = getattr(settings, setting_name)
+        model_cls = import_string(model_path)
+        model = model_cls(test=settings.is_test)
+        return model_name, model
+
+    def init_models(self):
+        models = []
+        for setting_name in dir(settings):
+            if setting_name.endswith('_model'):
+                model_name, model = self._get_model(setting_name)
+                setattr(self, model_name, model)
+                models.append(model)
+
+        self._models = tuple(models)
+        self._inited = True
+
+    def drop(self):
+        for model in self.models:
+            model.drop()
+
+    def __getattr__(self, attrname):
+        """Init models only when they are needed for the first time"""
+        object.__getattribute__(self, '_ensure_inited')()
+        return object.__getattribute__(self, attrname)
+
+
+db = Database()

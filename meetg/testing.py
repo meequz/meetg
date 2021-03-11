@@ -5,7 +5,7 @@ from telegram import Chat, Message, Update, User
 import settings
 from meetg import default_settings
 from meetg.loging import get_logger
-from meetg.storage import get_model_classes
+from meetg.storage import db
 from meetg.utils import dict_to_obj, import_string
 
 
@@ -24,20 +24,16 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self._reset_settings()
+        settings.is_test = True
         settings.log_level = logging.CRITICAL
         self._reinit_loggers()
 
 
 class BaseStorageTestCase(BaseTestCase):
 
-    def _drop_db(self):
-        for model_class in get_model_classes():
-            Model = import_string(model_class)
-            Model(test=True).drop()
-
     def setUp(self):
         super().setUp()
-        self._drop_db()
+        db.drop()
 
 
 class BotTestCase(BaseStorageTestCase):
@@ -45,7 +41,7 @@ class BotTestCase(BaseStorageTestCase):
     def setUp(self):
         super().setUp()
         Bot = import_string(settings.bot_class)
-        self.bot = Bot(mock=True)
+        self.bot = Bot()
 
 
 class JobQueueMock:

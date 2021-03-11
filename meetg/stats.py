@@ -1,6 +1,7 @@
 import psutil
 
 from meetg.loging import get_logger
+from meetg.storage import db
 from meetg.utils import get_current_unixtime, get_unixtime_before_now, true_only
 
 
@@ -127,8 +128,8 @@ def get_update_reports():
     return update_reports
 
 
-def get_model_reports(models):
-    reports = [model.get_day_report() for model in models]
+def get_model_reports():
+    reports = [model.get_day_report() for model in db.models]
     return true_only(reports)
 
 
@@ -139,9 +140,9 @@ def get_sys_reports():
     return reports
 
 
-def get_all_reports(models):
+def get_reports():
     update_reports = get_update_reports()
-    model_reports = get_model_reports(models)
+    model_reports = get_model_reports()
     job_reports = get_job_reports()
     sys_reports = get_sys_reports()
     return update_reports + model_reports + job_reports + sys_reports
