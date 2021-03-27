@@ -1,7 +1,6 @@
 import random, string, time
 from collections import namedtuple
 from importlib import import_module
-from io import BytesIO
 
 from PIL import Image
 

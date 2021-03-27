@@ -119,7 +119,7 @@ class BaseModel:
             if field in self.fields + self.special_fields:
                 validated[field] = data[field]
             else:
-                logger.warning('Field %s doesn\'t belong to model %s', field, self.name)
+                self._log_absent_field(field)
         return validated
 
     def drop(self):
@@ -131,6 +131,9 @@ class BaseModel:
 
     def _log_update(self, data: dict):
         logger.info('%s updated in storage', self.name)
+
+    def _log_absent_field(self, field):
+        logger.warning('Field %s doesn\'t belong to model %s', field, self.name)
 
     def create(self, data: dict):
         data = self._validate(data)
@@ -201,6 +204,10 @@ class ApiTypeModel(BaseModel):
             logger.info('%s %s updated in storage', self.name, data[id_field])
         else:
             logger.info('%s updated in storage', self.name)
+
+    def _log_absent_field(self, field):
+        if field not in self.api_type.fields + self.special_fields:
+            logger.warning('Field %s doesn\'t belong to model %s', field, self.name)
 
     def get_ptb_obj(self, update):
         raise NotImplementedError

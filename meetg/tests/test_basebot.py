@@ -1,5 +1,4 @@
 import logging
-from io import BytesIO
 
 import telegram
 from parameterized import parameterized
