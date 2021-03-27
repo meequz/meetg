@@ -134,9 +134,14 @@ def get_model_reports():
 
 
 def get_sys_reports():
-    memory = psutil.Process().memory_info().rss
-    mem_report = f'had {memory / 1000000 :.2f} MB of memory occupied'
-    reports = [mem_report]
+    occupying = f'{psutil.Process().memory_info().rss / 1000000 :,.2f}'.replace(',', ' ')
+    free = f'{psutil.virtual_memory().available / 1000000 :,.2f}'.replace(',', ' ')
+    mem_report = f'has been occupying {occupying} MB RAM ({free} MB free)'
+
+    disk_free = f'{psutil.disk_usage("/").free / 1000000 :,.2f}'.replace(',', ' ')
+    disk_report = f'{disk_free} MB free disk space left'
+
+    reports = [mem_report, disk_report]
     return reports
 
 

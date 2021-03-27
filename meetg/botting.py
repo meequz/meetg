@@ -70,7 +70,7 @@ class BaseBot:
 
     def _job_report_stats(self, context=None):
         """Report bots stats daily"""
-        prefix = f'@{self.username} for the last 24 hours:'
+        prefix = f'#report\n@{self.username} for the last 24 hours:'
         lines = [prefix] + get_reports()
         stats = '\n• '.join(lines)
 

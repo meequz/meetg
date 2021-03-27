@@ -315,7 +315,7 @@ class StatTest(AnyHandlerBotCase):
     def test_stats_msg_broadcasted(self):
         stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
         stats_job()
-        assert self.bot.last_method.args['text'].startswith('@mock_username for the')
+        assert self.bot.last_method.args['text'].startswith('#report\n@mock_username for the')
 
     def test_number_of_api_objects_in_stats(self):
         self.bot.receive_message('Spam')
