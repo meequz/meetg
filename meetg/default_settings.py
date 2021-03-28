@@ -23,7 +23,7 @@ network_error_wait = 2
 log_path = 'log.txt'
 log_level = logging.INFO
 
-stats_to = ()
+report_to = ()
 
 
 is_test = False

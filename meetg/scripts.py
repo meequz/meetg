@@ -75,7 +75,7 @@ db_name_test = '{name_cc_uncap}TestDB'
 
 bot_class = 'bot.main.{name_cc}'
 
-stats_to = ()  # Telegram IDs where to report bot stats
+report_to = ()  # Telegram IDs where to report bot stats
 '''
 
 TEST_REPLY_PY = '''

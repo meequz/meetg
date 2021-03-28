@@ -75,8 +75,8 @@ class BaseBot:
         stats = '\n• '.join(lines)
 
         logger.info(stats)
-        if settings.stats_to:
-            self.send_messages(settings.stats_to, stats)
+        if settings.report_to:
+            self.send_messages(settings.report_to, stats)
 
     def run(self):
         self.updater.start_polling()
@@ -89,7 +89,9 @@ class BaseBot:
             self.send_message(
                 chat_id, text, reply_to=reply_to, markup=markup, html=html, preview=preview,
             )
-        logger.info('Message broadcasted: %s', repr(text[:79]))
+        logger.info(
+            'Message with text length %s broadcasted to %s chats', len(text), len(chat_ids),
+        )
 
     def receive_message(self, text='', **kwargs):
         """

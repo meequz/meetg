@@ -310,7 +310,7 @@ class StatTest(AnyHandlerBotCase):
 
     def setUp(self):
         super().setUp()
-        settings.stats_to = (1, )
+        settings.report_to = (1, )
 
     def test_stats_msg_broadcasted(self):
         stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
@@ -335,8 +335,8 @@ class StatTest(AnyHandlerBotCase):
         broadcasted = self.bot.last_method.args['text']
         assert '_job_report_stats took' in broadcasted
 
-    def test_no_action_if_empty_stats_to(self):
-        settings.stats_to = ()
+    def test_no_action_if_empty_report_to(self):
+        settings.report_to = ()
         stats_job = self.bot._job_queue_wrapper._wrapped_callbacks[0]
         stats_job()
         assert not self.bot.last_method
