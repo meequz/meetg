@@ -1,8 +1,7 @@
 """Tests for various things related to testing"""
 from telegram.messageentity import MessageEntity
 
-from meetg.entities import parse_entities
-from meetg.factories import MessageFactory
+from meetg.factories import MessageFactory, parse_entities
 from meetg.testing import BaseTestCase
 
 
@@ -65,8 +64,25 @@ class MessageFactoryTest(BaseTestCase):
         super().setUp()
         self.factory = MessageFactory(None, 'message')
 
+    def test_chat_id(self):
+        message = self.factory.create(chat__id=420)
+        assert message.chat.id == 420
+
+    def test_text(self):
+        message = self.factory.create(text='spam')
+        assert message.text == 'spam'
+
+    def test_from(self):
+        message = self.factory.create(from__first_name='Sidney')
+        assert message.from_user.first_name == 'Sidney'
+
     def test_type_is_group_if_new_chat_members(self):
         new_chat_members = [{'is_bot': True, 'username': 'mock_username'}]
         message = self.factory.create(new_chat_members=new_chat_members)
         assert message.chat.id < 0
         assert message.chat.type == 'group'
+
+    def test_document_if_animation(self):
+        message = self.factory.create(animation__file_name='1.mp4')
+        assert message.animation.file_name == '1.mp4'
+        assert message.document.file_name == '1.mp4'
