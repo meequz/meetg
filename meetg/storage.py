@@ -242,6 +242,7 @@ class DefaultUpdateModel(ApiTypeModel):
 
     name = api_type.name
     fields = api_type.fields
+    save_on_update = True
 
     def save_from_update(self, update):
         data = update.to_dict()
@@ -260,6 +261,7 @@ class DefaultMessageModel(ApiTypeModel):
 
     name = api_type.name
     fields = api_type.fields
+    save_on_update = True
 
     def get_ptb_obj(self, update):
         ptb_obj = update.effective_message
@@ -275,6 +277,7 @@ class DefaultUserModel(ApiTypeModel):
 
     name = api_type.name
     fields = api_type.fields
+    save_on_update = True
 
     def get_ptb_obj(self, update):
         ptb_obj = update.effective_user
@@ -291,6 +294,7 @@ class DefaultChatModel(ApiTypeModel):
     name = api_type.name
     fields = api_type.fields
     special_fields = BaseModel.special_fields + ('_kicked_at', )
+    save_on_update = True
 
     def get_ptb_obj(self, update):
         ptb_obj = update.effective_chat
@@ -316,12 +320,18 @@ class Database:
 
     def __init__(self):
         self._models = None
+        self._save_on_update_models = None
         self._inited = False
 
     @property
     def models(self):
         self._ensure_inited()
         return self._models
+
+    @property
+    def save_on_update_models(self):
+        self._ensure_inited()
+        return self._save_on_update_models
 
     def _ensure_inited(self):
         if not self._inited:
@@ -336,13 +346,17 @@ class Database:
 
     def init_models(self):
         models = []
+        save_on_update_models = []
         for setting_name in dir(settings):
             if setting_name.endswith('_model'):
                 model_name, model = self._get_model(setting_name)
                 setattr(self, model_name, model)
                 models.append(model)
+                if getattr(model, 'save_on_update', False):
+                    save_on_update_models.append(model)
 
         self._models = tuple(models)
+        self._save_on_update_models = tuple(save_on_update_models)
         self._inited = True
 
     def drop(self):

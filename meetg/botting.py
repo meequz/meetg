@@ -160,5 +160,6 @@ class _ServiceHandler(Handler):
 
     def save(self, update):
         """Save all the fields specified in enabled models"""
-        for model in db.models:
-            model.save_from_update(update)
+        if settings.store_api_types:
+            for model in db._save_on_update_models:
+                model.save_from_update(update)
